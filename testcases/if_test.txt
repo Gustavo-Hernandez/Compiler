@@ -1,0 +1,5 @@
+private class classname : parentClass {
+    if(1>2){
+        print("Hello");
+    }
+}

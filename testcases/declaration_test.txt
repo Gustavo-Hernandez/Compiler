@@ -1,0 +1,5 @@
+private class classname : parentClass {
+    double a,b,c;
+    int a = 2;
+    int[2][2] a = {{2},{2}};
+}

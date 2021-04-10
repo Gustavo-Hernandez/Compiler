@@ -1,0 +1,11 @@
+private class classname : parentClass {
+   func void module1(){
+
+   }
+   func void module1(int a){
+
+   }
+   func int module2(){
+       return 1;
+   }
+}
