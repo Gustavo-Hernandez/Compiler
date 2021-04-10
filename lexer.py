@@ -10,7 +10,7 @@ tokens = (
     'ID',
     'CTE_F',
     'CTE_I',
-    'CTE_STRING',
+    'CTE_S',
     'COLON',
     'POINT',
     'SEMICOLON',
@@ -55,15 +55,16 @@ reserved = {
     'false':'FALSE',
     'and':'AND',
     'or':'OR',
+    'return':'RETURN'
 }
 
 # Add the reserved values to the token list.
 tokens += tuple(reserved.values())
 
 # Regular expression rules for simple tokens
-t_CTE_I  = r'[1-9][0-9]*'
+t_CTE_I  = r'[0-9][0-9]*'
 t_CTE_F  = r'[0-9]+\.[0-9]* '
-t_CTE_STRING  = r'\"(\\.|[^"\\])*\"'
+t_CTE_S  = r'\"(\\.|[^"\\])*\"'
 t_COLON  = r'\:'
 t_POINT  = r'\.'
 t_COMMA  = r'\,'
@@ -126,4 +127,4 @@ if(len(sys.argv) > 1):
         tok = lexer.token()
         if not tok: 
             break
-        print(tok)
+        #print(tok)
