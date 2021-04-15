@@ -1,5 +1,7 @@
 private class classname : parentClass {
     double a,b,c;
-    int a = 2;
-    int[2][2] a = {{2},{2}};
+    int x = 2;
+    int[2][2] y = {{2},{2}};
+    x = 4;
+    a = 7;
 }

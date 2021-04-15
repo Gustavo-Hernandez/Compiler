@@ -1,11 +1,13 @@
 private class classname : parentClass {
-   func void module1(){
+    func void module1(){
+       int a,b,c;
+    }
+    
+    func void module2(int a, int a){
+       int b = 2;
+    }
 
-   }
-   func void module1(int a){
-
-   }
-   func int module2(){
+    func int module3(bool isValid){
        return 1;
-   }
+    }
 }
