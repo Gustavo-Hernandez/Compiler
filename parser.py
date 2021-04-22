@@ -9,10 +9,12 @@ import sys
 from lexer import tokens
 from components.variable_table import VariableTable
 from components.function_dir import FunctionDirectory
+from components.code_gen import CodeGenerator
 
 var_table = None
 func_dir = None
 current_table = None
+code_gen = CodeGenerator()
 
 # Grammars Definition
 
@@ -22,6 +24,10 @@ current_table = None
 def p_class(p):
     '''class    : classAux class_1'''
     func_dir.print()
+    code_gen.operands.print()
+    code_gen.types.print()
+    code_gen.operators.print()
+    print(code_gen.quadruples)
 
 
 def p_classAux(p):
@@ -167,9 +173,14 @@ def p_extension(p):
 
 
 def p_assignation(p):
-    '''assignation : ID EQUALS assignation_1 SEMICOLON'''
-    current_table.update(p[1], p[3])
-    current_table.print()
+    '''assignation : assignationAux assignation_1 SEMICOLON'''
+
+
+def p_assignationAux(p):
+    '''assignationAux : ID EQUALS'''
+    code_gen.addOperand(p[1])
+    code_gen.addOperator(p[2])
+    code_gen.types.push(current_table.get_type(p[1]))
 
 
 def p_assignation_1(p):
@@ -342,6 +353,7 @@ def p_exp(p):
         p[0] = p[1] + p[2]
     else:
         p[0] = p[1]
+        code_gen.solve()
 
 
 def p_exp_1(p):
@@ -355,6 +367,8 @@ def p_exp_2(p):
     '''exp_2    : PLUS
                 | MINUS'''
     p[0] = p[1]
+    code_gen.addOperator_1(p[1])
+
 # ---- END EXP DEFINITION ---------
 
 # ---- BEGIN TERM DEFINITION ---------
@@ -379,6 +393,7 @@ def p_term_2(p):
     '''term_2   : TIMES
                 | DIVIDE'''
     p[0] = p[1]
+    code_gen.addOperator_2(p[1])
 # ---- END TERM DEFINITION ---------
 
 # ---- BEGIN FACTOR DEFINITION ---------
@@ -407,13 +422,45 @@ def p_factor_1(p):
 
 
 def p_var_cte(p):
-    '''var_cte  : ID
-                | CTE_I
-                | CTE_F
-                | CTE_S
-                | TRUE
-                | FALSE'''
+    '''var_cte  : var_cteAuxID
+                | var_cteAuxINT
+                | var_cteAuxFLOAT
+                | var_cteAuxSTRING
+                | var_cteAuxBOOL'''
     p[0] = p[1]
+    code_gen.addOperand(p[1])
+
+
+def p_var_cteAuxID(p):
+    '''var_cteAuxID  : ID'''
+    p[0] = p[1]
+    code_gen.types.push(current_table.get_type(p[1]))
+
+
+def p_var_cteAuxINT(p):
+    '''var_cteAuxINT  : CTE_I'''
+    p[0] = p[1]
+    code_gen.types.push("int")
+
+
+def p_var_cteAuxFLOAT(p):
+    '''var_cteAuxFLOAT  : CTE_F'''
+    p[0] = p[1]
+    code_gen.types.push("float")
+
+
+def p_var_cteAuxSTRING(p):
+    '''var_cteAuxSTRING  : CTE_S'''
+    p[0] = p[1]
+    code_gen.types.push("string")
+
+
+def p_var_cteAuxBOOL(p):
+    '''var_cteAuxBOOL   : TRUE
+                        | FALSE '''
+    p[0] = p[1]
+    code_gen.types.push("bool")
+
 # ---- END VAR_CTE DEFINITION ---------
 
 # ---- BEGIN TYPE_ATOMIC DEFINITION ---------

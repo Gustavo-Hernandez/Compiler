@@ -30,5 +30,11 @@ class VariableTable:
     def set_type(self, type_var):
         self.type_var = type_var
 
+    def get_type(self, id):
+        if id in self.table:
+            return self.table[id]['type']
+        else:
+            raise KeyError("Cannot get type for nonexitent id")
+
     def print(self):
         print(self.table)

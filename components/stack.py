@@ -2,6 +2,11 @@ class Stack:
     def __init__(self):
         self.stack = []
 
+    def top(self):
+        if len(self.stack) < 1:
+            return None
+        return self.stack[len(self.stack)-1]
+
     def pop(self):
         if len(self.stack) < 1:
             return None
@@ -12,3 +17,6 @@ class Stack:
 
     def size(self):
         return len(self.stack)
+
+    def print(self):
+        print(self.stack)
