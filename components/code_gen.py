@@ -9,6 +9,132 @@ class CodeGenerator:
         self.quadruples = []
         self.avail = []
         self.counter = 0
+        self.cube = {
+            'int': {
+                'int': {
+                    '+': 'int',
+                    '-': 'int',
+                    '*': 'int',
+                    '/': 'float',
+                    '>': 'bool',
+                    '<': 'bool',
+                    '==': 'bool'
+                },
+                'float': {
+                    '+': 'float',
+                    '-': 'float',
+                    '*': 'float',
+                    '/': 'float',
+                    '>': 'bool',
+                    '<': 'bool',
+                    '==': 'bool'
+                },
+                'double': {
+                    '+': 'double',
+                    '-': 'double',
+                    '*': 'double',
+                    '/': 'double',
+                    '>': 'bool',
+                    '<': 'bool',
+                    '==': 'bool'
+                },
+                'string': {
+                    '+': 'string'
+                }
+            },
+            'float': {
+                'int': {
+                    '+': 'float',
+                    '-': 'float',
+                    '*': 'float',
+                    '/': 'float',
+                    '>': 'bool',
+                    '<': 'bool',
+                    '==': 'bool'
+                },
+                'float': {
+                    '+': 'float',
+                    '-': 'float',
+                    '*': 'float',
+                    '/': 'float',
+                    '>': 'bool',
+                    '<': 'bool',
+                    '==': 'bool'
+                },
+                'double': {
+                    '+': 'double',
+                    '-': 'double',
+                    '*': 'double',
+                    '/': 'double',
+                    '>': 'bool',
+                    '<': 'bool',
+                    '==': 'bool'
+                },
+                'string': {
+                    '+': 'string'
+                }
+            },
+            'double': {
+                'int': {
+                    '+': 'double',
+                    '-': 'double',
+                    '*': 'double',
+                    '/': 'double',
+                    '>': 'bool',
+                    '<': 'bool',
+                    '==': 'bool'
+                },
+                'float': {
+                    '+': 'double',
+                    '-': 'double',
+                    '*': 'double',
+                    '/': 'double',
+                    '>': 'bool',
+                    '<': 'bool',
+                    '==': 'bool'
+                },
+                'double': {
+                    '+': 'double',
+                    '-': 'double',
+                    '*': 'double',
+                    '/': 'double',
+                    '>': 'bool',
+                    '<': 'bool',
+                    '==': 'bool'
+                },
+                'string': {
+                    '+': 'string'
+                }
+            },
+            'bool': {
+                'bool': {
+                    '+': 'bool',
+                    '-': 'bool',
+                    '*': 'bool',
+                    '/': 'bool',
+                    '>': 'bool',
+                    '<': 'bool',
+                    '==': 'bool',
+                    'and': 'bool',
+                    'or': 'bool'
+                }
+            },
+            'string': {
+                'string': {
+                    '+': 'string',
+                    '==': 'string'
+                },
+                'int': {
+                    '+': 'string'
+                },
+                'float': {
+                    '+': 'string'
+                },
+                'double': {
+                    '+': 'string'
+                }
+            }
+        }
 
     def addOperand(self, value):
         self.operands.push(value)
