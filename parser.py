@@ -74,11 +74,16 @@ def p_visibility(p):
 
 
 def p_statement(p):
-    '''statement    : assignation
+    '''statement    : statementAux
                     | condition
                     | printing
-                    | declaration
                     | loop'''
+
+
+def p_statementAux(p):
+    '''statementAux    : assignation
+                    | declaration'''
+    code_gen.final_solve()
 # ---- END STATEMENT DEFINITION ---------
 
 # ---- BEGIN BLOCK DEFINITION ---------
@@ -353,7 +358,6 @@ def p_exp(p):
         p[0] = p[1] + p[2]
     else:
         p[0] = p[1]
-        code_gen.solve()
 
 
 def p_exp_1(p):
@@ -400,7 +404,7 @@ def p_term_2(p):
 
 
 def p_factor(p):
-    '''factor   : OPEN_PARENTHESIS expression CLOSED_PARENTHESIS
+    '''factor   : factorAux expression factorAux2
                 | factor_1 var_cte'''
     if not p[1]:
         p[0] = p[2]
@@ -408,6 +412,18 @@ def p_factor(p):
         p[0] = p[1] + p[2] + p[3]
     else:
         p[0] = p[1] + p[2]
+
+
+def p_factorAux(p):
+    '''factorAux   : OPEN_PARENTHESIS'''
+    p[0] = p[1]
+    code_gen.addOperator(p[1])
+
+
+def p_factorAux2(p):
+    '''factorAux2   : CLOSED_PARENTHESIS'''
+    p[0] = p[1]
+    code_gen.factor_solve()
 
 
 def p_factor_1(p):

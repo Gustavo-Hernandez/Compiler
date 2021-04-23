@@ -1,0 +1,4 @@
+private class classname : parentClass {
+    double a,w;
+    w = a + true;
+}
