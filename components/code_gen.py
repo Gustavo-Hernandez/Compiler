@@ -6,9 +6,10 @@ class CodeGenerator:
         self.operands = Stack()
         self.operators = Stack()
         self.types = Stack()
+        self.jumps = Stack()
         self.quadruples = []
         self.avail = []
-        self.counter = 0
+        self.counter = 1
         self.cube = {
             'int': {
                 'int': {
@@ -142,6 +143,18 @@ class CodeGenerator:
     def addOperator(self, value):
         self.operators.push(value)
 
+    def addOperator_4(self, value):
+        op_top = self.operators.top()
+        if op_top in ["+", "*", "-", "/", ">", "<", "==", "!="]:
+            self.solve()
+        self.operators.push(value)
+
+    def addOperator_3(self, value):
+        op_top = self.operators.top()
+        if op_top in ["+", "*", "-", "/"]:
+            self.solve()
+        self.operators.push(value)
+
     def addOperator_2(self, value):
         op_top = self.operators.top()
         if op_top == "*" or op_top == "/":
@@ -151,7 +164,7 @@ class CodeGenerator:
     # Adding a plus or minus
     def addOperator_1(self, value):
         op_top = self.operators.top()
-        if op_top != '=' and op_top != None and op_top != '(':
+        if op_top not in ['=', None, '(', '>', '==', '!=', '<', 'and', 'or']:
             self.solve()
             self.addOperator_1(value)
         else:
@@ -174,9 +187,11 @@ class CodeGenerator:
             self.quadruples.append([operator, op_iz, op_der, key])
             self.types.push(tp_res)
             self.addOperand(key)
+            self.counter += 1
         else:
             if(tp_der == tp_iz):
                 self.quadruples.append([operator, op_der, None, op_iz])
+                self.counter += 1
             else:
                 raise TypeError("Assignation types do not match")
 
@@ -189,5 +204,27 @@ class CodeGenerator:
             self.solve()
         self.operators.pop()
 
-    def increase_counter(self):
+    def condition_1(self):
+        expr_type = self.types.pop()
+        if expr_type != 'bool':
+            raise TypeError(
+                "Type mismatch expected: bool, received: " + expr_type)
+        else:
+            expr_res = self.operands.pop()
+            self.quadruples.append(['gotoF', expr_res, None, None])
+            self.jumps.push(self.counter-1)  # Adding current line
+            self.counter += 1
+
+    def condition_2(self):
+        end = self.jumps.pop()
+        self.fill(end, self.counter)
+
+    def condition_3(self):
+        self.quadruples.append(['goto', None, None, None])
+        false_position = self.jumps.pop()
+        self.jumps.push(self.counter-1)
+        self.fill(false_position, self.counter)
         self.counter += 1
+
+    def fill(self, pos, value):
+        self.quadruples[pos][3] = value

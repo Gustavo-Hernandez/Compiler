@@ -1,7 +1,11 @@
 private class classname : parentClass {
+    int b, c, d;
+    int a = 1;
+    
     if(a == 2){
-        print("Hello");  
+        b = 2 + 3;
     }else{
-        print("Goodbye");
+        c = a * 3;
     }
+    d = a + 2;
 }

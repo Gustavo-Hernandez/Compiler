@@ -1,5 +1,9 @@
 private class classname : parentClass {
-    if(1>2){
-        print("Hello");
+    int a, b;
+    float x;
+    if(1 > 2){
+        a = 6;
     }
+    x = 2.0;
+    b = 2;
 }

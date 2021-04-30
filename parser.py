@@ -81,7 +81,7 @@ def p_statement(p):
 
 
 def p_statementAux(p):
-    '''statementAux    : assignation
+    '''statementAux : assignation
                     | declaration'''
     code_gen.final_solve()
 # ---- END STATEMENT DEFINITION ---------
@@ -198,18 +198,26 @@ def p_assignation_1(p):
 
 
 def p_declaration(p):
-    '''declaration : type declaration_1 SEMICOLON'''
+    '''declaration :  declaration_1 SEMICOLON'''
     current_table.register()
 
 
 def p_declaration_1(p):
-    '''declaration_1    : declaration_1Aux declaration_2
-                        | declaration_1Aux EQUALS declaration_3'''
+    '''declaration_1    : type declaration_1Aux declaration_2
+                        | declaration_1Aux2 declaration_3'''
 
 
 def p_declaration_1Aux(p):
     '''declaration_1Aux    : ID'''
     current_table.store_id(p[1])
+    p[0] = p[1]
+
+
+def p_declaration_1Aux2(p):
+    '''declaration_1Aux2    : type declaration_1Aux EQUALS'''
+    code_gen.operators.push(p[3])
+    code_gen.addOperand(p[2])
+    code_gen.types.push(p[1])
 
 
 def p_declaration_2(p):
@@ -283,12 +291,24 @@ def p_printing(p):
 
 
 def p_condition(p):
-    '''condition : IF OPEN_PARENTHESIS expression CLOSED_PARENTHESIS block condition_1'''
+    '''condition : conditionAux block condition_1'''
+    code_gen.condition_2()
+
+
+def p_conditionAux(p):
+    '''conditionAux : IF OPEN_PARENTHESIS expression CLOSED_PARENTHESIS'''
+    code_gen.final_solve()
+    code_gen.condition_1()
 
 
 def p_condition_1(p):
-    '''condition_1 : ELSE block
+    '''condition_1 : condition_1Aux block
                    | empty'''
+
+
+def p_condition_1Aux(p):
+    '''condition_1Aux : ELSE'''
+    code_gen.condition_3()
 # ---- END PRINTING DEFINITION ---------
 
 # ---- BEGIN LOOP DEFINITION ---------
@@ -320,6 +340,7 @@ def p_expression_2(p):
     '''expression_2 : AND
                     | OR'''
     p[0] = p[1]
+    code_gen.addOperator_4(p[0])
 # ---- END EXPRESSION DEFINITION ---------
 
 # ---- BEGIN EXP_L DEFINITION ---------
@@ -346,6 +367,7 @@ def p_exp_l_2(p):
                 | NOT_EQUAL
                 | EQUALITY'''
     p[0] = p[1]
+    code_gen.addOperator_3(p[0])
 
 # ---- END EXP_L DEFINITION ---------
 

@@ -36,9 +36,6 @@ tokens = (
 reserved = {
     'class': 'CLASS',
     'public': 'PUBLIC',
-    'private': 'IF',
-    'class': 'CLASS',
-    'public': 'PUBLIC',
     'private': 'PRIVATE',
     'protected': 'PROTECTED',
     'func': 'FUNC',
