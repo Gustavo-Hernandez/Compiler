@@ -315,7 +315,19 @@ def p_condition_1Aux(p):
 
 
 def p_loop(p):
-    '''loop : LOOP OPEN_PARENTHESIS expression CLOSED_PARENTHESIS block'''
+    '''loop : loopAux2 block'''
+    code_gen.loop_3()
+
+
+def p_loopAux(p):
+    '''loopAux : LOOP'''
+    code_gen.loop_1()
+
+
+def p_loopAux2(p):
+    '''loopAux2 : loopAux OPEN_PARENTHESIS expression CLOSED_PARENTHESIS'''
+    code_gen.final_solve()
+    code_gen.loop_2()
 # ---- END LOOP DEFINITION ---------
 
 # ---- BEGIN EXPRESSION DEFINITION ---------

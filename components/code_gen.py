@@ -226,5 +226,27 @@ class CodeGenerator:
         self.fill(false_position, self.counter)
         self.counter += 1
 
+    def loop_1(self):
+        self.jumps.push(self.counter)
+
+    def loop_2(self):
+        expr_type = self.types.pop()
+        if expr_type != 'bool':
+            raise TypeError(
+                "Type mismatch expected: bool, received: " + expr_type)
+        else:
+            expr_res = self.operands.pop()
+            self.quadruples.append(['gotoF', expr_res, None, None])
+            self.jumps.push(self.counter-1)  # Adding current line
+            self.counter += 1
+
+    def loop_3(self):
+        end = self.jumps.pop()
+        return_pos = self.jumps.pop()
+        self.quadruples.append(['goto', None, None, return_pos])
+        self.jumps.push(self.counter-1)  # Adding current line
+        self.fill(end, self.counter)
+        self.counter += 1
+
     def fill(self, pos, value):
         self.quadruples[pos][3] = value
