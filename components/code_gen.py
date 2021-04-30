@@ -204,11 +204,21 @@ class CodeGenerator:
             self.solve()
         self.operators.pop()
 
+    def printing(self):
+        res_type = self.types.pop()
+        res_operand = self.operands.pop()
+        if res_type == "string":
+            self.quadruples.append(['print', None, None, res_operand])
+            self.counter += 1
+        else:
+            raise TypeError(
+                "Type mismatch: expected string, received: " + res_type)
+
     def condition_1(self):
         expr_type = self.types.pop()
         if expr_type != 'bool':
             raise TypeError(
-                "Type mismatch expected: bool, received: " + expr_type)
+                "Type mismatch: expected bool, received: " + expr_type)
         else:
             expr_res = self.operands.pop()
             self.quadruples.append(['gotoF', expr_res, None, None])

@@ -284,7 +284,13 @@ def p_array_ind_1(p):
 
 
 def p_printing(p):
-    '''printing : PRINT OPEN_PARENTHESIS expression CLOSED_PARENTHESIS SEMICOLON'''
+    '''printing : printingAux SEMICOLON'''
+    code_gen.printing()
+
+
+def p_printingAux(p):
+    '''printingAux : PRINT OPEN_PARENTHESIS expression CLOSED_PARENTHESIS'''
+    code_gen.final_solve()
 # ---- END PRINTING DEFINITION ---------
 
 # ---- BEGIN CONDITION DEFINITION ---------
