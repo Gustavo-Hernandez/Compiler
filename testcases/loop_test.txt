@@ -1,7 +1,6 @@
 private class classname : parentClass {
     int a = 23;
     loop(a < 2){
-        print("Hello");
         a = a + 1;
     }
     int b = a + 1;

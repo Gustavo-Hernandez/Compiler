@@ -223,8 +223,8 @@ class CodeGenerator:
         self.quadruples.append(['goto', None, None, None])
         false_position = self.jumps.pop()
         self.jumps.push(self.counter-1)
-        self.fill(false_position, self.counter)
         self.counter += 1
+        self.fill(false_position, self.counter)
 
     def loop_1(self):
         self.jumps.push(self.counter)
@@ -245,8 +245,8 @@ class CodeGenerator:
         return_pos = self.jumps.pop()
         self.quadruples.append(['goto', None, None, return_pos])
         self.jumps.push(self.counter-1)  # Adding current line
-        self.fill(end, self.counter)
         self.counter += 1
+        self.fill(end, self.counter)
 
     def fill(self, pos, value):
         self.quadruples[pos][3] = value
