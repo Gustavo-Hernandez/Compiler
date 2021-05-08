@@ -16,6 +16,7 @@ func_dir = None
 current_table = None
 code_gen = CodeGenerator()
 
+
 # Grammars Definition
 
 # ---- BEGIN CLASS DEFINITION ---------
@@ -59,6 +60,7 @@ def p_class_4(p):
     '''class_4  : module class_4
                 | empty'''
 
+
 # ---- END CLASS DEFINITION ---------
 
 # ---- BEGIN VISIBILITY DEFINITION ---------
@@ -68,6 +70,8 @@ def p_visibility(p):
     '''visibility   : PUBLIC
                     | PRIVATE
                     | PROTECTED'''
+
+
 # ---- END VISIBILITY DEFINITION ---------
 
 # ---- BEGIN STATEMENT DEFINITION ---------
@@ -84,6 +88,8 @@ def p_statementAux(p):
     '''statementAux : assignation
                     | declaration'''
     code_gen.final_solve()
+
+
 # ---- END STATEMENT DEFINITION ---------
 
 # ---- BEGIN BLOCK DEFINITION ---------
@@ -96,6 +102,8 @@ def p_block(p):
 def p_block_1(p):
     '''block_1 : statement block_1
                 | empty'''
+
+
 # ---- END BLOCK DEFINITION ---------
 
 # ---- BEGIN MODULE DEFINITION ---------
@@ -108,6 +116,8 @@ def p_module(p):
 def p_module_1(p):
     '''module_1 : module_ret
                 | module_void'''
+
+
 # ---- END MODULE DEFINITION ---------
 
 # ---- BEGIN MODULE_VOID DEFINITION ---------
@@ -143,6 +153,8 @@ def p_module_retAux(p):
 def p_module_ret_1(p):
     '''module_ret_1 : statement module_ret_1
                     | empty'''
+
+
 # ---- END MODULE_RET DEFINITION ---------
 
 # ---- BEGIN PARAMS DEFINITION ---------
@@ -165,6 +177,8 @@ def p_params_1(p):
 def p_params_2(p):
     '''params_2 : COMMA paramsAux params_2
                 | empty'''
+
+
 # ---- END PARAMS DEFINITION ---------
 
 # ---- BEGIN EXTENSION DEFINITION ---------
@@ -172,7 +186,39 @@ def p_params_2(p):
 
 def p_extension(p):
     '''extension : COLON ID'''
+
+
 # ---- END EXTENSION DEFINITION ---------
+
+# ---- BEGIN CALL DEFINITIONS ----
+
+def p_method_call(p):
+    '''method_call : ID DOT func_call'''
+
+
+def p_argument_call(p):
+    '''argument_call : ID DOT ID'''
+
+
+def p_func_call(p):
+    '''func_call : ID OPEN_PARENTHESIS func_call_1 CLOSED_PARENTHESIS'''
+
+
+def p_func_call_1(p):
+    '''func_call_1  : expression func_call_2
+                    | empty'''
+
+
+def p_func_call_2(p):
+    '''func_call_2  : COMMA expression func_call_2
+                    | empty'''
+
+
+def p_void_call(p):
+    '''void_call : func_call SEMICOLON'''
+
+
+# ---- END CALL DEFINITIONS ----
 
 # ---- BEGIN ASSIGNATION DEFINITION ---------
 
@@ -192,6 +238,8 @@ def p_assignation_1(p):
     '''assignation_1    : expression
                         | array_dec'''
     p[0] = p[1]
+
+
 # ---- END ASSIGNATION DEFINITION ---------
 
 # ---- BEGIN DECLARATION DEFINITION ---------
@@ -229,6 +277,8 @@ def p_declaration_3(p):
     '''declaration_3    : expression
                         | array_dec'''
     current_table.set_value(p[1])
+
+
 # ---- END DECLARATION DEFINITION ---------
 
 # ---- BEGIN ARRAY_DEC DEFINITION ---------
@@ -278,6 +328,7 @@ def p_array_ind_1(p):
         else:
             p[0] = p[1] + p[2]
 
+
 # ---- END ARRAY_IND DEFINITION ---------
 
 # ---- BEGIN PRINTING DEFINITION ---------
@@ -291,6 +342,8 @@ def p_printing(p):
 def p_printingAux(p):
     '''printingAux : PRINT OPEN_PARENTHESIS expression CLOSED_PARENTHESIS'''
     code_gen.final_solve()
+
+
 # ---- END PRINTING DEFINITION ---------
 
 # ---- BEGIN CONDITION DEFINITION ---------
@@ -315,6 +368,8 @@ def p_condition_1(p):
 def p_condition_1Aux(p):
     '''condition_1Aux : ELSE'''
     code_gen.condition_3()
+
+
 # ---- END PRINTING DEFINITION ---------
 
 # ---- BEGIN LOOP DEFINITION ---------
@@ -334,6 +389,8 @@ def p_loopAux2(p):
     '''loopAux2 : loopAux OPEN_PARENTHESIS expression CLOSED_PARENTHESIS'''
     code_gen.final_solve()
     code_gen.loop_2()
+
+
 # ---- END LOOP DEFINITION ---------
 
 # ---- BEGIN EXPRESSION DEFINITION ---------
@@ -359,6 +416,8 @@ def p_expression_2(p):
                     | OR'''
     p[0] = p[1]
     code_gen.addOperator_4(p[0])
+
+
 # ---- END EXPRESSION DEFINITION ---------
 
 # ---- BEGIN EXP_L DEFINITION ---------
@@ -387,6 +446,7 @@ def p_exp_l_2(p):
     p[0] = p[1]
     code_gen.addOperator_3(p[0])
 
+
 # ---- END EXP_L DEFINITION ---------
 
 # ---- BEGIN EXP DEFINITION ---------
@@ -413,6 +473,7 @@ def p_exp_2(p):
     p[0] = p[1]
     code_gen.addOperator_1(p[1])
 
+
 # ---- END EXP DEFINITION ---------
 
 # ---- BEGIN TERM DEFINITION ---------
@@ -438,6 +499,8 @@ def p_term_2(p):
                 | DIVIDE'''
     p[0] = p[1]
     code_gen.addOperator_2(p[1])
+
+
 # ---- END TERM DEFINITION ---------
 
 # ---- BEGIN FACTOR DEFINITION ---------
@@ -472,6 +535,8 @@ def p_factor_1(p):
                 | empty'''
     if p[1]:
         p[0] = p[1]
+
+
 # ---- END FACTOR DEFINITION ---------
 
 # ---- BEGIN VAR_CTE DEFINITION ---------
@@ -517,6 +582,7 @@ def p_var_cteAuxBOOL(p):
     p[0] = p[1]
     code_gen.types.push("bool")
 
+
 # ---- END VAR_CTE DEFINITION ---------
 
 # ---- BEGIN TYPE_ATOMIC DEFINITION ---------
@@ -529,6 +595,8 @@ def p_type_atomic(p):
                     | STRING
                     | BOOL'''
     p[0] = p[1]
+
+
 # ---- END TYPE_ATOMIC DEFINITION ---------
 
 # ---- BEGIN TYPE DEFINITION ---------
@@ -556,6 +624,8 @@ def p_type_2(p):
     '''type_2   : arr_dim
                 | empty'''
     p[0] = p[1]
+
+
 # ---- END TYPE DEFINITION ---------
 
 # ---- BEGIN TP DEFINITION ---------
@@ -565,6 +635,8 @@ def p_tp(p):
     '''tp   : type_atomic
             | ID'''
     p[0] = p[1]
+
+
 # ---- END TP DEFINITION ---------
 
 # ---- BEGIN ARR_DIM DEFINITION ---------
@@ -573,12 +645,15 @@ def p_tp(p):
 def p_arr_dim(p):
     '''arr_dim  : OPEN_SQRT_BRACKET CTE_I CLOSED_SQRT_BRACKET'''
     p[0] = p[1] + p[2] + p[3]
+
+
 # ---- END ARR_DIM DEFINITION ---------
 
 
 def p_empty(p):
     'empty :'
     pass
+
 
 # Error rule for syntax errors
 
@@ -597,7 +672,7 @@ def print_grammar(p):
 
 
 # Validate if a file was passed through the command line arguments.
-if(len(sys.argv) > 1):
+if len(sys.argv) > 1:
     with open(sys.argv[1], 'r') as file:
         file_content = file.read().replace('\n', ' ')
 
