@@ -15,7 +15,7 @@ var_table = None
 func_dir = None
 current_table = None
 code_gen = CodeGenerator()
-
+current_scope = "global"
 # Grammars Definition
 
 # ---- BEGIN CLASS DEFINITION ---------
@@ -27,6 +27,8 @@ def p_class(p):
     code_gen.operands.print()
     code_gen.types.print()
     code_gen.operators.print()
+    print("VarTable")
+    var_table.print()
     print(code_gen.quadruples)
 
 
@@ -34,7 +36,7 @@ def p_classAux(p):
     '''classAux    : visibility CLASS ID'''
     global var_table, func_dir, current_table
     var_table = VariableTable()
-    func_dir = FunctionDirectory()
+    func_dir = FunctionDirectory(var_table)
     current_table = var_table
 
 
@@ -50,9 +52,6 @@ def p_class_2(p):
 def p_class_3(p):
     '''class_3  : statement class_3
                 | empty'''
-    if not p[1]:
-        global func_dir
-        func_dir = FunctionDirectory()
 
 
 def p_class_4(p):
@@ -108,6 +107,7 @@ def p_module(p):
 def p_module_1(p):
     '''module_1 : module_ret
                 | module_void'''
+    func_dir.delete_var_table(p[1])
 # ---- END MODULE DEFINITION ---------
 
 # ---- BEGIN MODULE_VOID DEFINITION ---------
@@ -115,13 +115,16 @@ def p_module_1(p):
 
 def p_module_void(p):
     '''module_void  : module_voidAux block'''
+    p[0] = p[1]
 
 
 def p_module_voidAux(p):
     '''module_voidAux  : VOID ID params'''
     func_dir.add_function(p[1], p[2])
     global current_table
-    current_table = func_dir.get_var_table(p[2])
+    current_table = func_dir.get_var_table()
+    code_gen.reset_t_counter()
+    p[0] = p[2]
 
 
 # ---- END MODULE_VOID DEFINITION ---------
@@ -131,13 +134,16 @@ def p_module_voidAux(p):
 
 def p_module_ret(p):
     '''module_ret  : module_retAux OPEN_BRACKET module_ret_1 RETURN expression SEMICOLON CLOSED_BRACKET'''
+    p[0] = p[1]
 
 
 def p_module_retAux(p):
     '''module_retAux  : type_atomic ID params'''
     func_dir.add_function(p[1], p[2])
     global current_table
-    current_table = func_dir.get_var_table(p[2])
+    current_table = func_dir.get_var_table()
+    code_gen.reset_t_counter()
+    p[0] = p[2]
 
 
 def p_module_ret_1(p):
@@ -199,7 +205,7 @@ def p_assignation_1(p):
 
 def p_declaration(p):
     '''declaration :  declaration_1 SEMICOLON'''
-    current_table.register()
+    current_table.register(current_scope)
 
 
 def p_declaration_1(p):
@@ -228,7 +234,6 @@ def p_declaration_2(p):
 def p_declaration_3(p):
     '''declaration_3    : expression
                         | array_dec'''
-    current_table.set_value(p[1])
 # ---- END DECLARATION DEFINITION ---------
 
 # ---- BEGIN ARRAY_DEC DEFINITION ---------
@@ -490,7 +495,11 @@ def p_var_cte(p):
 def p_var_cteAuxID(p):
     '''var_cteAuxID  : ID'''
     p[0] = p[1]
-    code_gen.types.push(current_table.get_type(p[1]))
+
+    if p[1] not in current_table.table and current_table != var_table:
+        code_gen.types.push(var_table.get_type(p[1]))
+    else:
+        code_gen.types.push(current_table.get_type(p[1]))
 
 
 def p_var_cteAuxINT(p):
@@ -603,4 +612,3 @@ if(len(sys.argv) > 1):
 
     # Parse the file content.
     result = parser.parse(file_content)
-    # print(result)

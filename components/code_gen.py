@@ -10,6 +10,7 @@ class CodeGenerator:
         self.quadruples = []
         self.avail = []
         self.counter = 1
+        self.t_counter = 0
         self.cube = {
             'int': {
                 'int': {
@@ -183,7 +184,8 @@ class CodeGenerator:
                 raise TypeError("Invalid operand types: " + tp_iz + " " +
                                 operator + " " + tp_der)
 
-            key = "t" + str(len(self.quadruples)+1)
+            key = "t" + str(self.t_counter)
+            self.t_counter += 1
             self.quadruples.append([operator, op_iz, op_der, key])
             self.types.push(tp_res)
             self.addOperand(key)
@@ -257,6 +259,9 @@ class CodeGenerator:
         self.jumps.push(self.counter-1)  # Adding current line
         self.counter += 1
         self.fill(end, self.counter)
+
+    def reset_t_counter(self):
+        self.t_counter = 0
 
     def fill(self, pos, value):
         self.quadruples[pos][3] = value

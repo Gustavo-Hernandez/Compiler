@@ -2,31 +2,60 @@ from .variable_table import VariableTable  # pylint: disable=relative-beyond-top
 
 
 class FunctionDirectory:
-    def __init__(self):
+
+    def __init__(self, global_vartable):
         self.directory = {}
         self.var_table = None
         self.params = {}
+        self.global_vartable = global_vartable
 
     def add_function(self, return_type, id):
         if not id in self.directory:
-            self.directory[id] = {
-                'return_type': return_type, 'params': self.params, 'var_table': VariableTable()}
+            if not id in self.global_vartable.table:
+                self.var_table = VariableTable()
+                self.directory[id] = {
+                    'return_type': return_type, 'params': self.params}
+            else:
+                raise KeyError("Duplicate identifier: " + id)
         else:
-            print("[Error] Duplicate function: " + id)
-        self.params = {}
+            raise KeyError("Duplicate function: " + id)
 
     def store_param(self, type_atomic, id):
         if not id in self.params:
             self.params[id] = {'type': type_atomic}
         else:
-            print("[Error] Duplicate function: " + id)
+            raise KeyError("Duplicate parameter: " + id)
 
-    def get_var_table(self, id):
-        return self.directory[id]['var_table']
+    def get_var_table(self):
+        return self.var_table
+
+    def delete_var_table(self, id):
+        self.directory[id]['size'] = self.calculateSize()
+        self.params = {}
+        self.var_table = None
+        pass
+
+    def calculateSize(self):
+        total_size = 0
+
+        for key in self.params:
+            tp = self.params[key]['type']
+            total_size += self.getSizeOf(tp)
+
+        for key in self.var_table.table:
+            tp = self.var_table.table[key]['type']
+            total_size += self.getSizeOf(tp)
+
+        return total_size
+
+    def getSizeOf(self, tp):
+        if tp in ['int', 'float', 'bool']:
+            return 24
+        elif tp in ['string', 'double']:
+            return 48
+        return 0
 
     def print(self):
         for f in self.directory:
             print("\n-------"+f+"---------")
             print("Func info: ", self.directory[f])
-            print("Func Vartable: ", end=" ")
-            self.directory[f]['var_table'].print()
