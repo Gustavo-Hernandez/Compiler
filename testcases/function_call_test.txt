@@ -6,7 +6,7 @@ private class classname : parentClass {
     }
 
     func int module2(){
-        return 4;
+        return 4 + 2;
     }
 
     main(){

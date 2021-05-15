@@ -86,7 +86,8 @@ def p_mainAux(p):
     '''mainAux : MAIN'''
     func_dir.add_function('void', p[1], code_gen.counter)
     global current_table
-    current_table = func_dir.get_var_table(p[1])
+    current_table = func_dir.get_var_table()
+    code_gen.reset_t_counter()
 
 
 # ---- END MAIN DEFINITION ---------
@@ -160,11 +161,11 @@ def p_module_void(p):
 
 def p_module_voidAux(p):
     '''module_voidAux  : VOID ID params'''
+    p[0] = p[2]
     func_dir.add_function(p[1], p[2], code_gen.counter)
     global current_table
     current_table = func_dir.get_var_table()
     code_gen.reset_t_counter()
-    p[0] = p[2]
 
 
 # ---- END MODULE_VOID DEFINITION ---------
@@ -175,17 +176,17 @@ def p_module_voidAux(p):
 def p_module_ret(p):
     '''module_ret  : module_retAux OPEN_BRACKET module_ret_1 RETURN expression SEMICOLON CLOSED_BRACKET'''
     code_gen.final_solve()
-    code_gen.add_return(p[1])
-    p[0] = p[1]
+    code_gen.add_return(p[1][0])
+    p[0] = p[1][1]
 
 
 def p_module_retAux(p):
     '''module_retAux  : type_atomic ID params'''
-    p[0] = p[1]
+    p[0] = [p[1], p[2]]
     func_dir.add_function(p[1], p[2], code_gen.counter)
     var_table.set_type(p[1])
     var_table.store_id(p[2])
-    var_table.register()
+    var_table.register(current_scope)
     global current_table
     current_table = func_dir.get_var_table()
     code_gen.reset_t_counter()
@@ -341,7 +342,6 @@ def p_declaration_2(p):
 def p_declaration_3(p):
     '''declaration_3    : expression
                         | array_dec'''
-    current_table.set_value(p[1])
 
 
 # ---- END DECLARATION DEFINITION ---------

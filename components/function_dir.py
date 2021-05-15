@@ -7,13 +7,14 @@ class FunctionDirectory:
         self.directory = {}
         self.var_table = None
         self.params = {}
+        self.global_vartable = global_vartable
 
     def add_function(self, return_type, id, pos):
         if not id in self.directory:
             if not id in self.global_vartable.table:
                 self.var_table = VariableTable()
                 self.directory[id] = {
-                    'return_type': return_type, 'params': self.params, 'pos': pos}
+                    'return_type': return_type, 'params': self.params, 'position': pos}
             else:
                 raise KeyError("Duplicate identifier: " + id)
         else:

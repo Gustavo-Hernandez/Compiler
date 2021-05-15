@@ -317,10 +317,10 @@ class CodeGenerator:
         self.quadruples.append(['GOSUB', None, None, func])
         self.counter += 1
 
-    def call_return(self, func, type):
+    def call_return(self, func, tp):
         key = "t" + str(self.t_counter)
         self.t_counter += 1
         self.quadruples.append(['=', func, None, key])
         self.counter += 1
-        self.types.push(type)
+        self.types.push(tp)
         return key
