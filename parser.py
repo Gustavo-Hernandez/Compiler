@@ -1,6 +1,7 @@
 # ------------------------------------------------------------
 # parser.py
 # A01364749 Gustavo Hernandez Sanchez
+# A01364701 Luis Miguel Maawad Hinojosa
 # ------------------------------------------------------------
 import ply.yacc as yacc
 import sys
@@ -14,6 +15,8 @@ from components.code_gen import CodeGenerator
 var_table = None
 func_dir = None
 current_table = None
+called_function = None
+current_function = None
 code_gen = CodeGenerator()
 
 
@@ -24,6 +27,7 @@ code_gen = CodeGenerator()
 
 def p_class(p):
     '''class    : classAux class_1'''
+    var_table.print()
     func_dir.print()
     code_gen.operands.print()
     code_gen.types.print()
@@ -37,10 +41,17 @@ def p_classAux(p):
     var_table = VariableTable()
     func_dir = FunctionDirectory()
     current_table = var_table
+    code_gen.add_main()
 
 
 def p_class_1(p):
-    '''class_1  : class_2 OPEN_BRACKET class_3 class_4 CLOSED_BRACKET'''
+    '''class_1  : class_2 OPEN_BRACKET class_3 class_4 class_5 CLOSED_BRACKET'''
+    code_gen.end_prog()
+    val = func_dir.directory.get('main', None)
+    if val:
+        code_gen.add_main_dir(val['position'])
+    else:
+        code_gen.add_main_dir(code_gen.counter)
 
 
 def p_class_2(p):
@@ -61,7 +72,27 @@ def p_class_4(p):
                 | empty'''
 
 
+def p_class_5(p):
+    '''class_5  : main
+                | empty'''
+
+
 # ---- END CLASS DEFINITION ---------
+
+# ---- BEGIN MAIN DEFINITION ---------
+
+def p_main(p):
+    '''main : mainAux OPEN_PARENTHESIS CLOSED_PARENTHESIS block'''
+
+
+def p_mainAux(p):
+    '''mainAux : MAIN'''
+    func_dir.add_function('void', p[1], code_gen.counter)
+    global current_table
+    current_table = func_dir.get_var_table(p[1])
+
+
+# ---- END MAIN DEFINITION ---------
 
 # ---- BEGIN VISIBILITY DEFINITION ---------
 
@@ -81,7 +112,8 @@ def p_statement(p):
     '''statement    : statementAux
                     | condition
                     | printing
-                    | loop'''
+                    | loop
+                    | void_call'''
 
 
 def p_statementAux(p):
@@ -111,6 +143,7 @@ def p_block_1(p):
 
 def p_module(p):
     '''module   : FUNC module_1'''
+    code_gen.end_func()
 
 
 def p_module_1(p):
@@ -129,7 +162,7 @@ def p_module_void(p):
 
 def p_module_voidAux(p):
     '''module_voidAux  : VOID ID params'''
-    func_dir.add_function(p[1], p[2])
+    func_dir.add_function(p[1], p[2], code_gen.counter)
     global current_table
     current_table = func_dir.get_var_table(p[2])
 
@@ -141,11 +174,17 @@ def p_module_voidAux(p):
 
 def p_module_ret(p):
     '''module_ret  : module_retAux OPEN_BRACKET module_ret_1 RETURN expression SEMICOLON CLOSED_BRACKET'''
+    code_gen.final_solve()
+    code_gen.add_return(p[1])
 
 
 def p_module_retAux(p):
     '''module_retAux  : type_atomic ID params'''
-    func_dir.add_function(p[1], p[2])
+    p[0] = p[1]
+    func_dir.add_function(p[1], p[2], code_gen.counter)
+    var_table.set_type(p[1])
+    var_table.store_id(p[2])
+    var_table.register()
     global current_table
     current_table = func_dir.get_var_table(p[2])
 
@@ -192,26 +231,58 @@ def p_extension(p):
 
 # ---- BEGIN CALL DEFINITIONS ----
 
-def p_method_call(p):
-    '''method_call : ID DOT func_call'''
+# def p_method_call(p):
+# '''method_call : ID POINT func_call'''
+
+# def p_method_call_void(p):
+# '''method_call_void : method_call SEMICOLON'''
 
 
-def p_argument_call(p):
-    '''argument_call : ID DOT ID'''
+# def p_argument_call(p):
+# '''argument_call : ID POINT ID'''
 
 
 def p_func_call(p):
-    '''func_call : ID OPEN_PARENTHESIS func_call_1 CLOSED_PARENTHESIS'''
+    '''func_call : func_call_aux OPEN_PARENTHESIS func_call_1 CLOSED_PARENTHESIS'''
+    tp = len(list(func_dir.directory[current_function]['params'].values()))
+    code_gen.validate_params(tp)
+    code_gen.go_sub(current_function)
+    ret_type = func_dir.directory[current_function]['return_type']
+    if ret_type != "void":
+        p[0] = code_gen.call_return(current_function, ret_type)
+
+
+def p_func_call_aux(p):
+    '''func_call_aux : ID'''
+    p[0] = p[1]
+    if p[1] in func_dir.directory:
+        code_gen.generate_era(p[1])
+        global current_function
+        current_function = p[1]
+    else:
+        raise NameError(
+            "Function call to undefined function: " + p[1])
 
 
 def p_func_call_1(p):
-    '''func_call_1  : expression func_call_2
+    '''func_call_1  : func_call_aux_2 func_call_2
                     | empty'''
 
 
 def p_func_call_2(p):
-    '''func_call_2  : COMMA expression func_call_2
+    '''func_call_2  : COMMA func_call_aux_2 func_call_2
                     | empty'''
+
+
+def p_func_call_aux_2(p):
+    '''func_call_aux_2 : expression'''
+    code_gen.final_solve()
+    tp = list(func_dir.directory[current_function]['params'].values())
+    if len(tp) > code_gen.par_counter:
+        code_gen.param(tp[code_gen.par_counter]['type'])
+    else:
+        raise TypeError(
+            "Function parameters exceed expected parameters")
 
 
 def p_void_call(p):
@@ -547,9 +618,11 @@ def p_var_cte(p):
                 | var_cteAuxINT
                 | var_cteAuxFLOAT
                 | var_cteAuxSTRING
-                | var_cteAuxBOOL'''
-    p[0] = p[1]
-    code_gen.addOperand(p[1])
+                | var_cteAuxBOOL
+                | func_call'''
+    if p[1]:
+        p[0] = p[1]
+        code_gen.addOperand(p[1])
 
 
 def p_var_cteAuxID(p):

@@ -9,6 +9,8 @@ class CodeGenerator:
         self.jumps = Stack()
         self.quadruples = []
         self.avail = []
+        self.par_counter = 0
+        self.t_counter = 0
         self.counter = 1
         self.cube = {
             'int': {
@@ -183,13 +185,14 @@ class CodeGenerator:
                 raise TypeError("Invalid operand types: " + tp_iz + " " +
                                 operator + " " + tp_der)
 
-            key = "t" + str(len(self.quadruples)+1)
+            key = "t" + str(self.t_counter)
+            self.t_counter += 1
             self.quadruples.append([operator, op_iz, op_der, key])
             self.types.push(tp_res)
             self.addOperand(key)
             self.counter += 1
         else:
-            if(tp_der == tp_iz):
+            if tp_der == tp_iz:
                 self.quadruples.append([operator, op_der, None, op_iz])
                 self.counter += 1
             else:
@@ -222,7 +225,7 @@ class CodeGenerator:
         else:
             expr_res = self.operands.pop()
             self.quadruples.append(['gotoF', expr_res, None, None])
-            self.jumps.push(self.counter-1)  # Adding current line
+            self.jumps.push(self.counter - 1)  # Adding current line
             self.counter += 1
 
     def condition_2(self):
@@ -232,7 +235,7 @@ class CodeGenerator:
     def condition_3(self):
         self.quadruples.append(['goto', None, None, None])
         false_position = self.jumps.pop()
-        self.jumps.push(self.counter-1)
+        self.jumps.push(self.counter - 1)
         self.counter += 1
         self.fill(false_position, self.counter)
 
@@ -247,16 +250,73 @@ class CodeGenerator:
         else:
             expr_res = self.operands.pop()
             self.quadruples.append(['gotoF', expr_res, None, None])
-            self.jumps.push(self.counter-1)  # Adding current line
+            self.jumps.push(self.counter - 1)  # Adding current line
             self.counter += 1
 
     def loop_3(self):
         end = self.jumps.pop()
         return_pos = self.jumps.pop()
         self.quadruples.append(['goto', None, None, return_pos])
-        self.jumps.push(self.counter-1)  # Adding current line
+        self.jumps.push(self.counter - 1)  # Adding current line
         self.counter += 1
         self.fill(end, self.counter)
 
     def fill(self, pos, value):
         self.quadruples[pos][3] = value
+
+    def end_func(self):
+        self.quadruples.append(['ENDFUNC', None, None, None])
+        self.counter += 1
+
+    def add_main(self):
+        self.quadruples.append(['goto', None, None, None])
+        self.counter += 1
+
+    def add_main_dir(self, val):
+        self.quadruples[0][3] = val
+
+    def end_prog(self):
+        self.quadruples.append(['END', None, None, None])
+
+    def generate_era(self, func):
+        self.quadruples.append(['ERA', func, None, None])
+        self.counter += 1
+
+    def param(self, tp):
+        exp = self.types.pop()
+
+        if exp != tp:
+            raise TypeError(
+                "Mismatch on parameter types: expected: " + tp + ", received: " + exp)
+        else:
+            self.quadruples.append(['PARAM', self.operands.pop(), None, 'par' + str(self.par_counter)])
+            self.par_counter += 1
+            self.counter += 1
+
+    def validate_params(self, length):
+        if length > self.par_counter:
+            raise TypeError(
+                "Function missing parameters")
+
+    def add_return(self, tp):
+        res = self.types.pop()
+
+        if res != tp:
+            raise TypeError(
+                "Mismatch on return type: expected: " + tp + ", received: " + res)
+        else:
+            self.quadruples.append(['RETURN', None, None, self.operands.pop()])
+            self.counter += 1
+
+    def go_sub(self, func):
+        self.par_counter = 0
+        self.quadruples.append(['GOSUB', None, None, func])
+        self.counter += 1
+
+    def call_return(self, func, type):
+        key = "t" + str(self.t_counter)
+        self.t_counter += 1
+        self.quadruples.append(['=', func, None, key])
+        self.counter += 1
+        self.types.push(type)
+        return key

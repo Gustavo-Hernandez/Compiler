@@ -7,10 +7,10 @@ class FunctionDirectory:
         self.var_table = None
         self.params = {}
 
-    def add_function(self, return_type, id):
+    def add_function(self, return_type, id, pos):
         if not id in self.directory:
             self.directory[id] = {
-                'return_type': return_type, 'params': self.params, 'var_table': VariableTable()}
+                'return_type': return_type, 'params': self.params, 'position': pos, 'var_table': VariableTable()}
         else:
             print("[Error] Duplicate function: " + id)
         self.params = {}
@@ -26,7 +26,7 @@ class FunctionDirectory:
 
     def print(self):
         for f in self.directory:
-            print("\n-------"+f+"---------")
+            print("\n-------" + f + "---------")
             print("Func info: ", self.directory[f])
             print("Func Vartable: ", end=" ")
             self.directory[f]['var_table'].print()

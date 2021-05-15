@@ -38,6 +38,7 @@ reserved = {
     'public': 'PUBLIC',
     'private': 'PRIVATE',
     'protected': 'PROTECTED',
+    'main': 'MAIN',
     'func': 'FUNC',
     'void': 'VOID',
     'int': 'INT',

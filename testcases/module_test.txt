@@ -3,11 +3,16 @@ private class classname : parentClass {
        int a,b,c;
     }
     
-    func void module2(int a, int a){
-       int b = 2;
+    func void module2(int a){
+       int b = 2 + 4 + 7 * 8;
     }
 
     func int module3(bool isValid){
        return 1;
+    }
+
+    main(){
+        int z;
+        z = 2 * 2;
     }
 }

@@ -8,7 +8,7 @@ class VariableTable:
     def register(self):
         for v in self.queue:
             if v in self.table:
-                print("[Error] Duplicate Variable: " + v)
+                raise NameError("Selected name " + v + " is already in use")
             else:
                 self.table[v] = {'type': self.type_var, 'value': self.value}
         self.queue = []
