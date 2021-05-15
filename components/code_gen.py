@@ -12,6 +12,7 @@ class CodeGenerator:
         self.par_counter = 0
         self.t_counter = 0
         self.counter = 1
+        self.t_counter = 0
         self.cube = {
             'int': {
                 'int': {
@@ -260,6 +261,9 @@ class CodeGenerator:
         self.jumps.push(self.counter - 1)  # Adding current line
         self.counter += 1
         self.fill(end, self.counter)
+
+    def reset_t_counter(self):
+        self.t_counter = 0
 
     def fill(self, pos, value):
         self.quadruples[pos][3] = value

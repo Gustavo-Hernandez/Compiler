@@ -18,8 +18,7 @@ current_table = None
 called_function = None
 current_function = None
 code_gen = CodeGenerator()
-
-
+current_scope = "global"
 # Grammars Definition
 
 # ---- BEGIN CLASS DEFINITION ---------
@@ -27,11 +26,12 @@ code_gen = CodeGenerator()
 
 def p_class(p):
     '''class    : classAux class_1'''
-    var_table.print()
     func_dir.print()
     code_gen.operands.print()
     code_gen.types.print()
     code_gen.operators.print()
+    print("VarTable")
+    var_table.print()
     print(code_gen.quadruples)
 
 
@@ -39,7 +39,7 @@ def p_classAux(p):
     '''classAux    : visibility CLASS ID'''
     global var_table, func_dir, current_table
     var_table = VariableTable()
-    func_dir = FunctionDirectory()
+    func_dir = FunctionDirectory(var_table)
     current_table = var_table
     code_gen.add_main()
 
@@ -62,9 +62,6 @@ def p_class_2(p):
 def p_class_3(p):
     '''class_3  : statement class_3
                 | empty'''
-    if not p[1]:
-        global func_dir
-        func_dir = FunctionDirectory()
 
 
 def p_class_4(p):
@@ -149,7 +146,7 @@ def p_module(p):
 def p_module_1(p):
     '''module_1 : module_ret
                 | module_void'''
-
+    func_dir.delete_var_table(p[1])
 
 # ---- END MODULE DEFINITION ---------
 
@@ -158,13 +155,16 @@ def p_module_1(p):
 
 def p_module_void(p):
     '''module_void  : module_voidAux block'''
+    p[0] = p[1]
 
 
 def p_module_voidAux(p):
     '''module_voidAux  : VOID ID params'''
     func_dir.add_function(p[1], p[2], code_gen.counter)
     global current_table
-    current_table = func_dir.get_var_table(p[2])
+    current_table = func_dir.get_var_table()
+    code_gen.reset_t_counter()
+    p[0] = p[2]
 
 
 # ---- END MODULE_VOID DEFINITION ---------
@@ -176,6 +176,7 @@ def p_module_ret(p):
     '''module_ret  : module_retAux OPEN_BRACKET module_ret_1 RETURN expression SEMICOLON CLOSED_BRACKET'''
     code_gen.final_solve()
     code_gen.add_return(p[1])
+    p[0] = p[1]
 
 
 def p_module_retAux(p):
@@ -186,14 +187,13 @@ def p_module_retAux(p):
     var_table.store_id(p[2])
     var_table.register()
     global current_table
-    current_table = func_dir.get_var_table(p[2])
+    current_table = func_dir.get_var_table()
+    code_gen.reset_t_counter()
 
 
 def p_module_ret_1(p):
     '''module_ret_1 : statement module_ret_1
                     | empty'''
-
-
 # ---- END MODULE_RET DEFINITION ---------
 
 # ---- BEGIN PARAMS DEFINITION ---------
@@ -216,8 +216,6 @@ def p_params_1(p):
 def p_params_2(p):
     '''params_2 : COMMA paramsAux params_2
                 | empty'''
-
-
 # ---- END PARAMS DEFINITION ---------
 
 # ---- BEGIN EXTENSION DEFINITION ---------
@@ -225,8 +223,6 @@ def p_params_2(p):
 
 def p_extension(p):
     '''extension : COLON ID'''
-
-
 # ---- END EXTENSION DEFINITION ---------
 
 # ---- BEGIN CALL DEFINITIONS ----
@@ -309,8 +305,6 @@ def p_assignation_1(p):
     '''assignation_1    : expression
                         | array_dec'''
     p[0] = p[1]
-
-
 # ---- END ASSIGNATION DEFINITION ---------
 
 # ---- BEGIN DECLARATION DEFINITION ---------
@@ -318,7 +312,7 @@ def p_assignation_1(p):
 
 def p_declaration(p):
     '''declaration :  declaration_1 SEMICOLON'''
-    current_table.register()
+    current_table.register(current_scope)
 
 
 def p_declaration_1(p):
@@ -399,7 +393,6 @@ def p_array_ind_1(p):
         else:
             p[0] = p[1] + p[2]
 
-
 # ---- END ARRAY_IND DEFINITION ---------
 
 # ---- BEGIN PRINTING DEFINITION ---------
@@ -413,8 +406,6 @@ def p_printing(p):
 def p_printingAux(p):
     '''printingAux : PRINT OPEN_PARENTHESIS expression CLOSED_PARENTHESIS'''
     code_gen.final_solve()
-
-
 # ---- END PRINTING DEFINITION ---------
 
 # ---- BEGIN CONDITION DEFINITION ---------
@@ -439,8 +430,6 @@ def p_condition_1(p):
 def p_condition_1Aux(p):
     '''condition_1Aux : ELSE'''
     code_gen.condition_3()
-
-
 # ---- END PRINTING DEFINITION ---------
 
 # ---- BEGIN LOOP DEFINITION ---------
@@ -460,8 +449,6 @@ def p_loopAux2(p):
     '''loopAux2 : loopAux OPEN_PARENTHESIS expression CLOSED_PARENTHESIS'''
     code_gen.final_solve()
     code_gen.loop_2()
-
-
 # ---- END LOOP DEFINITION ---------
 
 # ---- BEGIN EXPRESSION DEFINITION ---------
@@ -487,8 +474,6 @@ def p_expression_2(p):
                     | OR'''
     p[0] = p[1]
     code_gen.addOperator_4(p[0])
-
-
 # ---- END EXPRESSION DEFINITION ---------
 
 # ---- BEGIN EXP_L DEFINITION ---------
@@ -517,7 +502,6 @@ def p_exp_l_2(p):
     p[0] = p[1]
     code_gen.addOperator_3(p[0])
 
-
 # ---- END EXP_L DEFINITION ---------
 
 # ---- BEGIN EXP DEFINITION ---------
@@ -544,7 +528,6 @@ def p_exp_2(p):
     p[0] = p[1]
     code_gen.addOperator_1(p[1])
 
-
 # ---- END EXP DEFINITION ---------
 
 # ---- BEGIN TERM DEFINITION ---------
@@ -570,8 +553,6 @@ def p_term_2(p):
                 | DIVIDE'''
     p[0] = p[1]
     code_gen.addOperator_2(p[1])
-
-
 # ---- END TERM DEFINITION ---------
 
 # ---- BEGIN FACTOR DEFINITION ---------
@@ -606,8 +587,6 @@ def p_factor_1(p):
                 | empty'''
     if p[1]:
         p[0] = p[1]
-
-
 # ---- END FACTOR DEFINITION ---------
 
 # ---- BEGIN VAR_CTE DEFINITION ---------
@@ -628,7 +607,10 @@ def p_var_cte(p):
 def p_var_cteAuxID(p):
     '''var_cteAuxID  : ID'''
     p[0] = p[1]
-    code_gen.types.push(current_table.get_type(p[1]))
+    if p[1] not in current_table.table and current_table != var_table:
+        code_gen.types.push(var_table.get_type(p[1]))
+    else:
+        code_gen.types.push(current_table.get_type(p[1]))
 
 
 def p_var_cteAuxINT(p):
@@ -655,7 +637,6 @@ def p_var_cteAuxBOOL(p):
     p[0] = p[1]
     code_gen.types.push("bool")
 
-
 # ---- END VAR_CTE DEFINITION ---------
 
 # ---- BEGIN TYPE_ATOMIC DEFINITION ---------
@@ -668,8 +649,6 @@ def p_type_atomic(p):
                     | STRING
                     | BOOL'''
     p[0] = p[1]
-
-
 # ---- END TYPE_ATOMIC DEFINITION ---------
 
 # ---- BEGIN TYPE DEFINITION ---------
@@ -697,8 +676,6 @@ def p_type_2(p):
     '''type_2   : arr_dim
                 | empty'''
     p[0] = p[1]
-
-
 # ---- END TYPE DEFINITION ---------
 
 # ---- BEGIN TP DEFINITION ---------
@@ -708,8 +685,6 @@ def p_tp(p):
     '''tp   : type_atomic
             | ID'''
     p[0] = p[1]
-
-
 # ---- END TP DEFINITION ---------
 
 # ---- BEGIN ARR_DIM DEFINITION ---------
@@ -718,15 +693,12 @@ def p_tp(p):
 def p_arr_dim(p):
     '''arr_dim  : OPEN_SQRT_BRACKET CTE_I CLOSED_SQRT_BRACKET'''
     p[0] = p[1] + p[2] + p[3]
-
-
 # ---- END ARR_DIM DEFINITION ---------
 
 
 def p_empty(p):
     'empty :'
     pass
-
 
 # Error rule for syntax errors
 
@@ -751,4 +723,3 @@ if len(sys.argv) > 1:
 
     # Parse the file content.
     result = parser.parse(file_content)
-    # print(result)
