@@ -9,145 +9,100 @@ class MemoryManagerMeta(type):
 
 
 class MemoryManager (metaclass=MemoryManagerMeta):
-
     def __init__(self):
-        self.INT_GLOBAL_OFFSET = 1000
-        self.FLOAT_GLOBAL_OFFSET = 1500
-        self.DOUBLE_GLOBAL_OFFSET = 2500
-        self.STR_GLOBAL_OFFSET = 3000
-        self.BOOL_GLOBAL_OFFSET = 3500
+        # This structure allows to set the upper and
+        # lower limits of an address space.
+        # Limits are stablished as the following:
+        # scope:{datatype:[min,max]}
+        self.map = {
+            'global':{
+                'int': [1000,1499],
+                'float': [1500,1999],
+                'string': [2500,3499],
+                'boolean': [3500,3999]
+            },
+            'temp':{
+                'int': [4000,4499],
+                'float': [4500,4999],
+                'string': [5500,5999],
+                'boolean': [6000,6999]
+            },
+            'const':{
+                'int': [7000,7499],
+                'float': [7500,7999],
+                'string': [8500,8999],
+                'boolean': [9000,9499]
+            },
+            'pointers':{
+                'int':[12000,13000]
+            }
+        }
+        # This structure allows to keep track of the current
+        # requested addresses
+        self.counter = {
+            'global':{
+                'int': 0,
+                'float': 0,
+                'string': 0,
+                'boolean': 0
+            },
+            'temp':{
+                'int': 0,
+                'float': 0,
+                'string': 0,
+                'boolean': 0
+            },
+            'const':{
+                'int': 0,
+                'float': 0,
+                'string': 0,
+                'boolean': 0
+            },
+            'pointers':{
+                'int':0
+            }
+        }
 
-        self.INT_TEMP_OFFSET = 4000
-        self.FLOAT_TEMP_OFFSET = 4500
-        self.DOUBLE_TEMP_OFFSET = 5000
-        self.STR_TEMP_OFFSET = 5500
-        self.BOOL_TEMP_OFFSET = 6000
+    # Request and Address given a scope and type
+    # The return value is an available address as an integer.
+    def requestAddress(self, scope, tp):
+        nextAddress = self.map[scope][tp][0] + self.counter[scope][tp]
+        if(nextAddress <= self.map[scope][tp][1]):
+            self.counter[scope][tp] +=1
+            return nextAddress
+        raise MemoryError("Insuficient memory to assign a new address")
 
-        self.INT_CONST_OFFSET = 7000
-        self.FLOAT_CONST_OFFSET = 7500
-        self.DOUBLE_CONST_OFFSET = 8000
-        self.STR_CONST_OFFSET = 8500
-        self.BOOL_CONST_OFFSET = 9000
-
-        self.global_int = 0
-        self.global_float = 0
-        self.global_double = 0
-        self.global_str = 0
-        self.global_bool = 0
-
-        self.temp_int = 0
-        self.temp_float = 0
-        self.temp_double = 0
-        self.temp_str = 0
-        self.temp_bool = 0
-
-        self.const_int = 0
-        self.const_float = 0
-        self.const_double = 0
-        self.const_str = 0
-        self.const_bool = 0
-
-    def next_global_int(self):
-        return self.global_int + self.INT_GLOBAL_OFFSET
-
-    def request_global_int(self):
-        self.global_int += 1
-        return self.global_int + self.INT_GLOBAL_OFFSET
-
-    def next_temp_int(self):
-        return self.temp_int + self.INT_TEMP_OFFSET
-
-    def request_temp_int(self):
-        self.temp_int += 1
-        return self.const_int + self.INT_TEMP_OFFSET
-
-    def next_const_int(self):
-        return self.const_int + self.INT_CONST_OFFSET
-
-    def request_const_int(self):
-        self.const_int += 1
-        return self.const_int + self.INT_CONST_OFFSET
-
-    def next_global_float(self):
-        return self.global_float + self.FLOAT_GLOBAL_OFFSET
-
-    def request_global_float(self):
-        self.global_float += 1
-        return self.global_float + self.FLOAT_GLOBAL_OFFSET
-
-    def next_temp_float(self):
-        return self.temp_float + self.FLOAT_TEMP_OFFSET
-
-    def request_temp_float(self):
-        self.temp_float += 1
-        return self.const_float + self.FLOAT_TEMP_OFFSET
-
-    def next_const_float(self):
-        return self.const_float + self.FLOAT_CONST_OFFSET
-
-    def request_const_float(self):
-        self.const_float += 1
-        return self.const_float + self.FLOAT_CONST_OFFSET
-
-    def next_global_double(self):
-        return self.global_double + self.DOUBLE_GLOBAL_OFFSET
-
-    def request_global_double(self):
-        self.global_double += 1
-        return self.global_double + self.DOUBLE_GLOBAL_OFFSET
-
-    def next_temp_double(self):
-        return self.temp_double + self.DOUBLE_TEMP_OFFSET
-
-    def request_temp_double(self):
-        self.temp_double += 1
-        return self.const_double + self.DOUBLE_TEMP_OFFSET
-
-    def next_const_double(self):
-        return self.const_double + self.DOUBLE_CONST_OFFSET
-
-    def request_const_double(self):
-        self.const_double += 1
-        return self.const_double + self.DOUBLE_CONST_OFFSET
-
-    def next_global_str(self):
-        return self.global_str + self.STR_GLOBAL_OFFSET
-
-    def request_global_str(self):
-        self.global_str += 1
-        return self.global_str + self.STR_GLOBAL_OFFSET
-
-    def next_temp_str(self):
-        return self.temp_str + self.STR_TEMP_OFFSET
-
-    def request_temp_str(self):
-        self.temp_str += 1
-        return self.const_str + self.STR_TEMP_OFFSET
-
-    def next_const_str(self):
-        return self.const_str + self.STR_CONST_OFFSET
-
-    def request_const_str(self):
-        self.const_str += 1
-        return self.const_str + self.STR_CONST_OFFSET
-
-    def next_global_bool(self):
-        return self.global_bool + self.BOOL_GLOBAL_OFFSET
-
-    def request_global_bool(self):
-        self.global_bool += 1
-        return self.global_bool + self.BOOL_GLOBAL_OFFSET
-
-    def next_temp_bool(self):
-        return self.temp_bool + self.BOOL_TEMP_OFFSET
-
-    def request_temp_bool(self):
-        self.temp_bool += 1
-        return self.const_bool + self.BOOL_TEMP_OFFSET
-
-    def next_const_bool(self):
-        return self.const_bool + self.BOOL_CONST_OFFSET
-
-    def request_const_bool(self):
-        self.const_bool += 1
-        return self.const_bool + self.BOOL_CONST_OFFSET
+    def getAddressType(self, memAddress):
+        if memAddress >= self.map['global']['int'][0] and memAddress <= self.map['pointers']['int'][1]:
+            #Get Scope of INT Address
+            if memAddress in range(self.map['global']['int'][0], self.self.map['global']['int'][1]):
+                return ['global','int']
+            elif memAddress in range(self.map['temp']['int'][0], self.self.map['temp']['int'][1]):
+                return ['temp','int']
+            elif memAddress in range(self.map['const']['int'][0], self.self.map['const']['int'][1]):
+                return ['const','int']
+            elif memAddress in range(self.map['pointer']['int'][0], self.self.map['pointer']['int'][1]):
+                return ['pointer','int']
+            #Get Scope of FLOAT Address
+            elif memAddress in range(self.map['global']['float'][0], self.self.map['global']['float'][1]):
+                return ['global','float']
+            elif memAddress in range(self.map['temp']['float'][0], self.self.map['temp']['float'][1]):
+                return ['temp','float']
+            elif memAddress in range(self.map['const']['float'][0], self.self.map['const']['float'][1]):
+                return ['const','float'] 
+            #Get Scope of STRING Address  
+            elif memAddress in range(self.map['global']['string'][0], self.self.map['global']['string'][1]):
+                return ['global','string']
+            elif memAddress in range(self.map['temp']['string'][0], self.self.map['temp']['string'][1]):
+                return ['temp','string']
+            elif memAddress in range(self.map['const']['string'][0], self.self.map['const']['string'][1]):
+                return ['const','string']
+            #Get Scope of BOOLEAN Address
+            elif memAddress in range(self.map['global']['boolean'][0], self.self.map['global']['boolean'][1]):
+                return ['global','boolean']
+            elif memAddress in range(self.map['temp']['boolean'][0], self.self.map['temp']['boolean'][1]):
+                return ['temp','boolean']
+            elif memAddress in range(self.map['const']['boolean'][0], self.self.map['const']['boolean'][1]):
+                return ['const','boolean']
+        #If memory address not in range return error.
+        raise MemoryError("Invalid Memory Address")
