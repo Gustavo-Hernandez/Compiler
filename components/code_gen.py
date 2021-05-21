@@ -1,3 +1,4 @@
+from components.mem_manager import MemoryManager
 from .stack import Stack  # pylint: disable=relative-beyond-top-level
 
 
@@ -12,7 +13,7 @@ class CodeGenerator:
         self.par_counter = 0
         self.t_counter = 0
         self.counter = 1
-        self.t_counter = 0
+        self.current_scope = 'global'
         self.cube = {
             'int': {
                 'int': {
@@ -186,7 +187,10 @@ class CodeGenerator:
                 raise TypeError("Invalid operand types: " + tp_iz + " " +
                                 operator + " " + tp_der)
 
-            key = "t" + str(self.t_counter)
+            if(self.current_scope == 'module'):
+                key = MemoryManager().request_address('temp', tp_res)
+            else:
+                key = "t" + str(self.t_counter)
             self.t_counter += 1
             self.quadruples.append([operator, op_iz, op_der, key])
             self.types.push(tp_res)
@@ -264,6 +268,7 @@ class CodeGenerator:
 
     def reset_t_counter(self):
         self.t_counter = 0
+        MemoryManager().reset_temp_counter()
 
     def fill(self, pos, value):
         self.quadruples[pos][3] = value
@@ -293,7 +298,8 @@ class CodeGenerator:
             raise TypeError(
                 "Mismatch on parameter types: expected: " + tp + ", received: " + exp)
         else:
-            self.quadruples.append(['PARAM', self.operands.pop(), None, 'par' + str(self.par_counter)])
+            self.quadruples.append(
+                ['PARAM', self.operands.pop(), None, 'par' + str(self.par_counter)])
             self.par_counter += 1
             self.counter += 1
 
@@ -324,3 +330,10 @@ class CodeGenerator:
         self.counter += 1
         self.types.push(tp)
         return key
+
+    def print_quads(self):
+        print("\n----  Quadruples  -----")
+        i = 1
+        for quad in self.quadruples:
+            print(i, quad)
+            i += 1

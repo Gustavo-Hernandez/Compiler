@@ -3,6 +3,7 @@
 # A01364749 Gustavo Hernandez Sanchez
 # A01364701 Luis Miguel Maawad Hinojosa
 # ------------------------------------------------------------
+from components.mem_manager import MemoryManager
 import ply.yacc as yacc
 import sys
 
@@ -11,14 +12,15 @@ from lexer import tokens
 from components.variable_table import VariableTable
 from components.function_dir import FunctionDirectory
 from components.code_gen import CodeGenerator
+from components.virtual_machine import VirtualMachine
 
+var_tables = {}
 var_table = None
 func_dir = None
 current_table = None
 called_function = None
 current_function = None
 code_gen = CodeGenerator()
-current_scope = "global"
 # Grammars Definition
 
 # ---- BEGIN CLASS DEFINITION ---------
@@ -27,12 +29,15 @@ current_scope = "global"
 def p_class(p):
     '''class    : classAux class_1'''
     func_dir.print()
-    code_gen.operands.print()
-    code_gen.types.print()
-    code_gen.operators.print()
-    print("VarTable")
-    var_table.print()
-    print(code_gen.quadruples)
+    code_gen.print_quads()
+
+    print("\nVariable Tables")
+    var_tables['global'] = var_table.table
+    for var in var_tables:
+        print(var, ":", var_tables[var])
+    print("\n")
+    vm = VirtualMachine(code_gen.quadruples, func_dir.directory, var_tables)
+    vm.start()
 
 
 def p_classAux(p):
@@ -62,6 +67,8 @@ def p_class_2(p):
 def p_class_3(p):
     '''class_3  : statement class_3
                 | empty'''
+    if not p[1]:
+        code_gen.current_scope = 'module'
 
 
 def p_class_4(p):
@@ -78,8 +85,11 @@ def p_class_5(p):
 
 # ---- BEGIN MAIN DEFINITION ---------
 
+
 def p_main(p):
     '''main : mainAux OPEN_PARENTHESIS CLOSED_PARENTHESIS block'''
+    func_dir.delete_var_table(p[1])
+    code_gen.reset_t_counter()
 
 
 def p_mainAux(p):
@@ -87,7 +97,7 @@ def p_mainAux(p):
     func_dir.add_function('void', p[1], code_gen.counter)
     global current_table
     current_table = func_dir.get_var_table()
-    code_gen.reset_t_counter()
+    p[0] = p[1]
 
 
 # ---- END MAIN DEFINITION ---------
@@ -147,8 +157,8 @@ def p_module(p):
 def p_module_1(p):
     '''module_1 : module_ret
                 | module_void'''
+    var_tables[p[1]] = func_dir.get_var_table().table
     func_dir.delete_var_table(p[1])
-
 # ---- END MODULE DEFINITION ---------
 
 # ---- BEGIN MODULE_VOID DEFINITION ---------
@@ -186,7 +196,7 @@ def p_module_retAux(p):
     func_dir.add_function(p[1], p[2], code_gen.counter)
     var_table.set_type(p[1])
     var_table.store_id(p[2])
-    var_table.register(current_scope)
+    var_table.register('global')
     global current_table
     current_table = func_dir.get_var_table()
     code_gen.reset_t_counter()
@@ -247,6 +257,7 @@ def p_func_call(p):
     ret_type = func_dir.directory[current_function]['return_type']
     if ret_type != "void":
         p[0] = code_gen.call_return(current_function, ret_type)
+        code_gen.addOperand(p[0])
 
 
 def p_func_call_aux(p):
@@ -297,9 +308,14 @@ def p_assignation(p):
 
 def p_assignationAux(p):
     '''assignationAux : ID EQUALS'''
-    code_gen.addOperand(p[1])
-    code_gen.addOperator(p[2])
-    code_gen.types.push(current_table.get_type(p[1]))
+    if p[1] not in current_table.table and current_table != var_table:
+        code_gen.types.push(var_table.get_type(p[1]))
+        code_gen.addOperand(var_table.table[p[1]]['virtual_address'])
+        code_gen.addOperator(p[2])
+    else:
+        code_gen.types.push(current_table.get_type(p[1]))
+        code_gen.addOperand(current_table.table[p[1]]['virtual_address'])
+        code_gen.addOperator(p[2])
 
 
 def p_assignation_1(p):
@@ -313,7 +329,7 @@ def p_assignation_1(p):
 
 def p_declaration(p):
     '''declaration :  declaration_1 SEMICOLON'''
-    current_table.register(current_scope)
+    current_table.register(code_gen.current_scope)
 
 
 def p_declaration_1(p):
@@ -330,8 +346,9 @@ def p_declaration_1Aux(p):
 def p_declaration_1Aux2(p):
     '''declaration_1Aux2    : type declaration_1Aux EQUALS'''
     code_gen.operators.push(p[3])
-    code_gen.addOperand(p[2])
     code_gen.types.push(p[1])
+    current_table.register(code_gen.current_scope)
+    code_gen.addOperand(current_table.table[p[2]]['virtual_address'])
 
 
 def p_declaration_2(p):
@@ -601,7 +618,6 @@ def p_var_cte(p):
                 | func_call'''
     if p[1]:
         p[0] = p[1]
-        code_gen.addOperand(p[1])
 
 
 def p_var_cteAuxID(p):
@@ -609,26 +625,31 @@ def p_var_cteAuxID(p):
     p[0] = p[1]
     if p[1] not in current_table.table and current_table != var_table:
         code_gen.types.push(var_table.get_type(p[1]))
+        code_gen.addOperand(var_table.table[p[1]]['virtual_address'])
     else:
         code_gen.types.push(current_table.get_type(p[1]))
+        code_gen.addOperand(current_table.table[p[1]]['virtual_address'])
 
 
 def p_var_cteAuxINT(p):
     '''var_cteAuxINT  : CTE_I'''
     p[0] = p[1]
     code_gen.types.push("int")
+    code_gen.addOperand(p[1])
 
 
 def p_var_cteAuxFLOAT(p):
     '''var_cteAuxFLOAT  : CTE_F'''
     p[0] = p[1]
     code_gen.types.push("float")
+    code_gen.addOperand(p[1])
 
 
 def p_var_cteAuxSTRING(p):
     '''var_cteAuxSTRING  : CTE_S'''
     p[0] = p[1]
     code_gen.types.push("string")
+    code_gen.addOperand(p[1])
 
 
 def p_var_cteAuxBOOL(p):
@@ -636,6 +657,7 @@ def p_var_cteAuxBOOL(p):
                         | FALSE '''
     p[0] = p[1]
     code_gen.types.push("bool")
+    code_gen.addOperand(p[1])
 
 # ---- END VAR_CTE DEFINITION ---------
 

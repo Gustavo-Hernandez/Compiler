@@ -1,9 +1,14 @@
 private class classname : parentClass {
-    int a, b;
-    float x;
-    if(1 > 2){
-        a = 6;
+    main(){
+        int a, b;
+        float x;
+        a = 0;
+
+        if(a > 2){
+            a = 6;
+        }
+        
+        x = 2.0;
+        b = 2;
     }
-    x = 2.0;
-    b = 2;
 }

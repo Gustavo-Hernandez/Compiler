@@ -1,6 +1,8 @@
 private class classname : parentClass {
-    double a,b,c,x;
-    print(b + 4 * a * 2 + 5 > 2 + 3*1);
-    x = a * a + b + 2;
-    c = a + 5;
+    
+    main(){
+        float a,b,c,x;
+        x = a * a + b + 2;
+        c = a + 5;
+    }
 }

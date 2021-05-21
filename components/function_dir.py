@@ -1,3 +1,4 @@
+from components.mem_manager import MemoryManager
 from .variable_table import VariableTable  # pylint: disable=relative-beyond-top-level
 
 
@@ -30,23 +31,10 @@ class FunctionDirectory:
         return self.var_table
 
     def delete_var_table(self, id):
-        self.directory[id]['size'] = self.calculateSize()
-        self.params = {}
+        # TODO: ADD PARAMS TO SIZE CALCULATION
+        self.directory[id]['size'] = MemoryManager().get_module_counter()
         self.var_table = None
-        pass
-
-    def calculateSize(self):
-        total_size = 0
-
-        for key in self.params:
-            tp = self.params[key]['type']
-            total_size += self.getSizeOf(tp)
-
-        for key in self.var_table.table:
-            tp = self.var_table.table[key]['type']
-            total_size += self.getSizeOf(tp)
-
-        return total_size
+        self.params = {}
 
     def getSizeOf(self, tp):
         if tp in ['int', 'float', 'bool']:

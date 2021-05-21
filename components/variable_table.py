@@ -13,8 +13,12 @@ class VariableTable:
             if v in self.table:
                 raise NameError("Selected name " + v + " is already in use")
             else:
-                self.table[v] = {
-                    'scope': scope, 'type': self.type_var}
+                if(scope == 'global'):
+                    self.table[v] = {
+                        'type': self.type_var, 'virtual_address': MemoryManager().request_address(scope, self.type_var)}
+                else:
+                    self.table[v] = {
+                        'type': self.type_var, 'virtual_address': MemoryManager().request_address('local', self.type_var)}
         self.queue = []
         self.type_var = None
 
@@ -29,11 +33,6 @@ class VariableTable:
             return self.table[id]['type']
         else:
             raise KeyError("Cannot get type for nonexitent id")
-
-    def requestAddress(self):
-        if(self.type_var == 'int'):
-            return self.mem_manager.request_global_int()
-        return 'Invalid'
 
     def print(self):
         print(self.table)
