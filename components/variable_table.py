@@ -1,3 +1,4 @@
+import math
 from components.mem_manager import MemoryManager
 
 
@@ -17,7 +18,12 @@ class VariableTable:
             else:
                 is_array = self.is_array.pop(0)
                 if is_array:
-                    dims = self.dims.pop(0)
+                    d = self.dims.pop(0)
+                    m = math.prod(d)
+                    dims = []
+                    for dim in d:
+                        m = m//dim
+                        dims.append([dim, m])
                 else:
                     dims = None
 
@@ -66,3 +72,11 @@ class VariableTable:
             return self.table[val]['is_array']
         else:
             raise KeyError("Variable " + val + " is not defined")
+
+    def insert_cte(self, val, tp):
+        if val in self.table:
+            return self.table[val]['virtual_address']
+        else:
+            mem = MemoryManager().request_address('const', tp)
+            self.table[val] = {'virtual_address': mem}
+            return mem

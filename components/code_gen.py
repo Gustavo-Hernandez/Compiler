@@ -352,11 +352,13 @@ class CodeGenerator:
         operand = self.operands.pop()
         self.types.pop()
 
-        key = MemoryManager().request_address('temp', tp)
+        key = MemoryManager().request_address('pointers', 'int')
         self.t_counter += 1
 
         self.quadruples.append(['+', operand, va, key])
-        self.operands.push("(" + str(key) + ")")
+
+        # Added pointer key
+        self.operands.push(key)
         self.types.push(tp)
         self.counter += 1
         self.dim_counter = 0
@@ -387,7 +389,6 @@ class CodeGenerator:
         d = len(dims)
         operand = self.operands.pop()
         tp = self.types.pop()
-        r = math.prod(dims)//dims[self.dim_counter]
 
         if tp != 'int':
             raise TypeError('Index must be an integer value, received: ', tp)
@@ -395,19 +396,19 @@ class CodeGenerator:
         if self.dim_counter == d:
             raise IndexError("Array dimensions exceed declared dimensions of ", d)
 
-        self.quadruples.append(['VER', operand, 0, dims[self.dim_counter]])
+        self.quadruples.append(['VER', operand, 0, dims[self.dim_counter][0] - 1])
         self.counter += 1
 
         if self.dim_counter == 0:
             if d != 1:
-                res = self.set_dim_mul(operand, r)
+                res = self.set_dim_mul(operand, dims[self.dim_counter][1])
                 self.operands.push(res)
                 self.types.push('int')
         else:
             if self.dim_counter == d - 1:
                 self.set_dim_sum(operand)
             else:
-                operand = self.set_dim_mul(operand, r)
+                operand = self.set_dim_mul(operand, dims[self.dim_counter][1])
                 self.set_dim_sum(operand)
 
         self.dim_counter += 1

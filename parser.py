@@ -16,6 +16,7 @@ from components.code_gen import CodeGenerator
 from components.virtual_machine import VirtualMachine
 
 var_tables = {}
+cte_table = VariableTable()
 var_table = None
 func_dir = None
 current_table = None
@@ -32,13 +33,12 @@ code_gen = CodeGenerator()
 
 def p_class(p):
     '''class    : classAux class_1'''
-    print(code_gen.operands.stack)
-
     func_dir.print()
     code_gen.print_quads()
 
     print("\nVariable Tables")
     var_tables['global'] = var_table.table
+    var_tables['const'] = cte_table.table
     for var in var_tables:
         print(var, ":", var_tables[var])
     print("\n")
@@ -669,10 +669,11 @@ def p_var_cte(p):
 
 
 def p_var_cte_id(p):
-    '''var_cte_id : var_cteAuxID var_cteAuxID1'''
+    '''var_cte_id : var_cteAuxID arr_exp_loop'''
     global current_arr
     if current_arr:
-        code_gen.final_arr(current_arr['virtual_address'], current_arr['type'], current_arr['dims'])
+        cte_mem = cte_table.insert_cte(current_arr['virtual_address'], 'int')
+        code_gen.final_arr(cte_mem, current_arr['type'], current_arr['dims'])
         current_arr = None
         code_gen.operators.pop()
     p[0] = p[1]
@@ -698,47 +699,38 @@ def p_var_cteAuxID(p):
             code_gen.addOperand(current_table.table[p[1]]['virtual_address'])
 
 
-def p_var_cteAuxID1(p):
-    '''var_cteAuxID1    : arr_aux var_cteAuxID1
-                        | empty'''
-
-
-def p_arr_aux(p):
-    '''arr_aux : arr_exp'''
-    if current_arr:
-        code_gen.set_dim(current_arr['dims'])
-    else:
-        raise TypeError("Variable is not array")
-
-
 
 def p_var_cteAuxINT(p):
     '''var_cteAuxINT  : CTE_I'''
     p[0] = p[1]
+    var_cte = cte_table.insert_cte(p[1], 'int')
     code_gen.types.push("int")
-    code_gen.addOperand(p[1])
+    code_gen.addOperand(var_cte)
 
 
 def p_var_cteAuxFLOAT(p):
     '''var_cteAuxFLOAT  : CTE_F'''
     p[0] = p[1]
+    var_cte = cte_table.insert_cte(p[1], 'float')
     code_gen.types.push("float")
-    code_gen.addOperand(p[1])
+    code_gen.addOperand(var_cte)
 
 
 def p_var_cteAuxSTRING(p):
     '''var_cteAuxSTRING  : CTE_S'''
     p[0] = p[1]
+    var_cte = cte_table.insert_cte(p[1], 'string')
     code_gen.types.push("string")
-    code_gen.addOperand(p[1])
+    code_gen.addOperand(var_cte)
 
 
 def p_var_cteAuxBOOL(p):
     '''var_cteAuxBOOL   : TRUE
                         | FALSE '''
     p[0] = p[1]
+    var_cte = cte_table.insert_cte(p[1], 'bool')
     code_gen.types.push("bool")
-    code_gen.addOperand(p[1])
+    code_gen.addOperand(var_cte)
 
 
 # ---- END VAR_CTE DEFINITION ---------
@@ -797,6 +789,19 @@ def p_id_arr_1(p):
 def p_arr_dim(p):
     '''arr_dim  : OPEN_SQRT_BRACKET CTE_I CLOSED_SQRT_BRACKET'''
     p[0] = p[1] + p[2] + p[3]
+
+
+def p_arr_exp_loop(p):
+    '''arr_exp_loop     : arr_aux arr_exp_loop
+                        | empty'''
+
+
+def p_arr_aux(p):
+    '''arr_aux : arr_exp'''
+    if current_arr:
+        code_gen.set_dim(current_arr['dims'])
+    else:
+        raise TypeError("Variable is not array")
 
 
 def p_arr_exp(p):
