@@ -205,7 +205,7 @@ def p_module_retAux(p):
     var_table.set_array(False)
     var_table.set_type(p[1])
     var_table.store_id(p[2])
-    var_table.register('global')
+    var_table.register('global', cte_table)
     global current_table
     current_table = func_dir.get_var_table()
     code_gen.reset_t_counter()
@@ -323,16 +323,8 @@ def p_assignation(p):
 
 
 def p_assignationAux(p):
-    '''assignationAux : ID EQUALS'''
-    current_table.set_array(False)
-    if p[1] not in current_table.table and current_table != var_table:
-        code_gen.types.push(var_table.get_type(p[1]))
-        code_gen.addOperand(var_table.table[p[1]]['virtual_address'])
-        code_gen.addOperator(p[2])
-    else:
-        code_gen.types.push(current_table.get_type(p[1]))
-        code_gen.addOperand(current_table.table[p[1]]['virtual_address'])
-        code_gen.addOperator(p[2])
+    '''assignationAux : id_arr_var EQUALS'''
+    code_gen.addOperator(p[2])
 
 
 def p_assignation_1(p):
@@ -348,7 +340,7 @@ def p_assignation_1(p):
 
 def p_declaration(p):
     '''declaration :  declaration_1 SEMICOLON'''
-    current_table.register(code_gen.current_scope)
+    current_table.register(code_gen.current_scope, cte_table)
 
 
 def p_declaration_1(p):
@@ -380,7 +372,7 @@ def p_declaration_1Aux2(p):
     '''declaration_1Aux2    : type declaration_1Aux EQUALS'''
     code_gen.operators.push(p[3])
     code_gen.types.push(p[1])
-    current_table.register(code_gen.current_scope)
+    current_table.register(code_gen.current_scope, cte_table)
     code_gen.addOperand(current_table.table[p[2]]['virtual_address'])
 
 
@@ -658,7 +650,7 @@ def p_factor_1(p):
 
 
 def p_var_cte(p):
-    '''var_cte  : var_cte_id
+    '''var_cte  : id_arr_var
                 | var_cteAuxINT
                 | var_cteAuxFLOAT
                 | var_cteAuxSTRING
@@ -668,42 +660,10 @@ def p_var_cte(p):
         p[0] = p[1]
 
 
-def p_var_cte_id(p):
-    '''var_cte_id : var_cteAuxID arr_exp_loop'''
-    global current_arr
-    if current_arr:
-        cte_mem = cte_table.insert_cte(current_arr['virtual_address'], 'int')
-        code_gen.final_arr(cte_mem, current_arr['type'], current_arr['dims'])
-        current_arr = None
-        code_gen.operators.pop()
-    p[0] = p[1]
-
-def p_var_cteAuxID(p):
-    '''var_cteAuxID  : ID'''
-    p[0] = p[1]
-    global current_arr
-
-    if p[1] not in current_table.table and current_table != var_table:
-        if var_table.get_is_array(p[1]):
-            current_arr = var_table.table[p[1]]
-            code_gen.operators.push('ARR')
-        else:
-            code_gen.types.push(var_table.get_type(p[1]))
-            code_gen.addOperand(var_table.table[p[1]]['virtual_address'])
-    else:
-        if current_table.get_is_array(p[1]):
-            current_arr = current_table.table[p[1]]
-            code_gen.operators.push('ARR')
-        else:
-            code_gen.types.push(current_table.get_type(p[1]))
-            code_gen.addOperand(current_table.table[p[1]]['virtual_address'])
-
-
-
 def p_var_cteAuxINT(p):
     '''var_cteAuxINT  : CTE_I'''
     p[0] = p[1]
-    var_cte = cte_table.insert_cte(p[1], 'int')
+    var_cte = cte_table.insert_cte(int(p[1]), 'int')
     code_gen.types.push("int")
     code_gen.addOperand(var_cte)
 
@@ -711,7 +671,7 @@ def p_var_cteAuxINT(p):
 def p_var_cteAuxFLOAT(p):
     '''var_cteAuxFLOAT  : CTE_F'''
     p[0] = p[1]
-    var_cte = cte_table.insert_cte(p[1], 'float')
+    var_cte = cte_table.insert_cte(float(p[1]), 'float')
     code_gen.types.push("float")
     code_gen.addOperand(var_cte)
 
@@ -799,17 +759,52 @@ def p_arr_exp_loop(p):
 def p_arr_aux(p):
     '''arr_aux : arr_exp'''
     if current_arr:
-        code_gen.set_dim(current_arr['dims'])
+        code_gen.set_dim(current_arr['dims'], cte_table.insert_cte(0, 'int'))
     else:
         raise TypeError("Variable is not array")
 
 
 def p_arr_exp(p):
-    '''arr_exp  : OPEN_SQRT_BRACKET expression CLOSED_SQRT_BRACKET'''
+    '''arr_exp  : arr_expAux expression CLOSED_SQRT_BRACKET'''
     p[0] = p[1] + p[2] + p[3]
     code_gen.arr_solve()
+    code_gen.operators.pop()
+
+def p_arr_expAux(p):
+    '''arr_expAux  : OPEN_SQRT_BRACKET'''
+    p[0] = p[1]
+    code_gen.operators.push('ARR')
 
 # ---- END ARR_DIM DEFINITION ---------
+
+# ---- BEGIN ID_ARR DEFINITION --------
+
+def p_id_arr_var(p):
+    '''id_arr_var : id_arr_varAuxID arr_exp_loop'''
+    global current_arr
+    if current_arr:
+        cte_mem = cte_table.insert_cte(current_arr['virtual_address'], 'int')
+        code_gen.final_arr(cte_mem, current_arr['type'], current_arr['dims'])
+        current_arr = None
+    p[0] = p[1]
+
+def p_id_arrID(p):
+    '''id_arr_varAuxID  : ID'''
+    p[0] = p[1]
+    global current_arr
+
+    if p[1] not in current_table.table and current_table != var_table:
+        if var_table.get_is_array(p[1]):
+            current_arr = var_table.table[p[1]]
+        else:
+            code_gen.types.push(var_table.get_type(p[1]))
+            code_gen.addOperand(var_table.table[p[1]]['virtual_address'])
+    else:
+        if current_table.get_is_array(p[1]):
+            current_arr = current_table.table[p[1]]
+        else:
+            code_gen.types.push(current_table.get_type(p[1]))
+            code_gen.addOperand(current_table.table[p[1]]['virtual_address'])
 
 
 def p_empty(p):

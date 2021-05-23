@@ -11,7 +11,7 @@ class VariableTable:
         self.is_array = []
         self.dims = []
 
-    def register(self, scope):
+    def register(self, scope, cte_table):
         for v in self.queue:
             if v in self.table:
                 raise NameError("Selected name " + v + " is already in use")
@@ -23,7 +23,9 @@ class VariableTable:
                     dims = []
                     for dim in d:
                         m = m//dim
-                        dims.append([dim, m])
+                        m_dir = cte_table.insert_cte(m, 'int')
+                        dim_dir = cte_table.insert_cte(dim, 'int')
+                        dims.append([dim_dir, m_dir])
                 else:
                     dims = None
 

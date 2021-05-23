@@ -4,7 +4,7 @@ private class classname : parentClass {
         float x;
         a = 0;
 
-        if(a > 2){
+        if(a + 7 * 4 + (1 + 2 * 2) > 2){
             a = 6;
         }
         
