@@ -6,6 +6,7 @@
 from components.mem_manager import MemoryManager
 import ply.yacc as yacc
 import sys
+import re
 
 # Get the token map from the lexer.  This is required.
 from lexer import tokens
@@ -20,7 +21,10 @@ func_dir = None
 current_table = None
 called_function = None
 current_function = None
+current_arr = None
 code_gen = CodeGenerator()
+
+
 # Grammars Definition
 
 # ---- BEGIN CLASS DEFINITION ---------
@@ -28,6 +32,8 @@ code_gen = CodeGenerator()
 
 def p_class(p):
     '''class    : classAux class_1'''
+    print(code_gen.operands.stack)
+
     func_dir.print()
     code_gen.print_quads()
 
@@ -159,6 +165,8 @@ def p_module_1(p):
                 | module_void'''
     var_tables[p[1]] = func_dir.get_var_table().table
     func_dir.delete_var_table(p[1])
+
+
 # ---- END MODULE DEFINITION ---------
 
 # ---- BEGIN MODULE_VOID DEFINITION ---------
@@ -194,6 +202,7 @@ def p_module_retAux(p):
     '''module_retAux  : type_atomic ID params'''
     p[0] = [p[1], p[2]]
     func_dir.add_function(p[1], p[2], code_gen.counter)
+    var_table.set_array(False)
     var_table.set_type(p[1])
     var_table.store_id(p[2])
     var_table.register('global')
@@ -205,6 +214,8 @@ def p_module_retAux(p):
 def p_module_ret_1(p):
     '''module_ret_1 : statement module_ret_1
                     | empty'''
+
+
 # ---- END MODULE_RET DEFINITION ---------
 
 # ---- BEGIN PARAMS DEFINITION ---------
@@ -227,6 +238,8 @@ def p_params_1(p):
 def p_params_2(p):
     '''params_2 : COMMA paramsAux params_2
                 | empty'''
+
+
 # ---- END PARAMS DEFINITION ---------
 
 # ---- BEGIN EXTENSION DEFINITION ---------
@@ -234,6 +247,8 @@ def p_params_2(p):
 
 def p_extension(p):
     '''extension : COLON ID'''
+
+
 # ---- END EXTENSION DEFINITION ---------
 
 # ---- BEGIN CALL DEFINITIONS ----
@@ -256,7 +271,8 @@ def p_func_call(p):
     code_gen.go_sub(current_function)
     ret_type = func_dir.directory[current_function]['return_type']
     if ret_type != "void":
-        p[0] = code_gen.call_return(current_function, ret_type)
+        mem_dir = var_table.table[current_function]['virtual_address']
+        p[0] = code_gen.call_return(mem_dir, ret_type)
         code_gen.addOperand(p[0])
 
 
@@ -308,6 +324,7 @@ def p_assignation(p):
 
 def p_assignationAux(p):
     '''assignationAux : ID EQUALS'''
+    current_table.set_array(False)
     if p[1] not in current_table.table and current_table != var_table:
         code_gen.types.push(var_table.get_type(p[1]))
         code_gen.addOperand(var_table.table[p[1]]['virtual_address'])
@@ -322,6 +339,8 @@ def p_assignation_1(p):
     '''assignation_1    : expression
                         | array_dec'''
     p[0] = p[1]
+
+
 # ---- END ASSIGNATION DEFINITION ---------
 
 # ---- BEGIN DECLARATION DEFINITION ---------
@@ -338,9 +357,23 @@ def p_declaration_1(p):
 
 
 def p_declaration_1Aux(p):
-    '''declaration_1Aux    : ID'''
-    current_table.store_id(p[1])
-    p[0] = p[1]
+    '''declaration_1Aux    : id_arr'''
+    if '[' in p[1]:
+        elm = []
+        for e in re.split("\[(.*?)\]", p[1]):
+            if e != '':
+                elm.append(e)
+        current_table.store_id(elm[0])
+        dims = []
+        for i in range(1, len(elm)):
+            dims.append(int(elm[i]))
+        current_table.set_array(True)
+        current_table.set_dims(dims)
+    else:
+        current_table.store_id(p[1])
+        current_table.set_array(False)
+        p[0] = p[1]
+
 
 
 def p_declaration_1Aux2(p):
@@ -410,6 +443,7 @@ def p_array_ind_1(p):
         else:
             p[0] = p[1] + p[2]
 
+
 # ---- END ARRAY_IND DEFINITION ---------
 
 # ---- BEGIN PRINTING DEFINITION ---------
@@ -423,6 +457,8 @@ def p_printing(p):
 def p_printingAux(p):
     '''printingAux : PRINT OPEN_PARENTHESIS expression CLOSED_PARENTHESIS'''
     code_gen.final_solve()
+
+
 # ---- END PRINTING DEFINITION ---------
 
 # ---- BEGIN CONDITION DEFINITION ---------
@@ -447,6 +483,8 @@ def p_condition_1(p):
 def p_condition_1Aux(p):
     '''condition_1Aux : ELSE'''
     code_gen.condition_3()
+
+
 # ---- END PRINTING DEFINITION ---------
 
 # ---- BEGIN LOOP DEFINITION ---------
@@ -466,6 +504,8 @@ def p_loopAux2(p):
     '''loopAux2 : loopAux OPEN_PARENTHESIS expression CLOSED_PARENTHESIS'''
     code_gen.final_solve()
     code_gen.loop_2()
+
+
 # ---- END LOOP DEFINITION ---------
 
 # ---- BEGIN EXPRESSION DEFINITION ---------
@@ -491,6 +531,8 @@ def p_expression_2(p):
                     | OR'''
     p[0] = p[1]
     code_gen.addOperator_4(p[0])
+
+
 # ---- END EXPRESSION DEFINITION ---------
 
 # ---- BEGIN EXP_L DEFINITION ---------
@@ -519,6 +561,7 @@ def p_exp_l_2(p):
     p[0] = p[1]
     code_gen.addOperator_3(p[0])
 
+
 # ---- END EXP_L DEFINITION ---------
 
 # ---- BEGIN EXP DEFINITION ---------
@@ -545,6 +588,7 @@ def p_exp_2(p):
     p[0] = p[1]
     code_gen.addOperator_1(p[1])
 
+
 # ---- END EXP DEFINITION ---------
 
 # ---- BEGIN TERM DEFINITION ---------
@@ -570,6 +614,8 @@ def p_term_2(p):
                 | DIVIDE'''
     p[0] = p[1]
     code_gen.addOperator_2(p[1])
+
+
 # ---- END TERM DEFINITION ---------
 
 # ---- BEGIN FACTOR DEFINITION ---------
@@ -604,13 +650,15 @@ def p_factor_1(p):
                 | empty'''
     if p[1]:
         p[0] = p[1]
+
+
 # ---- END FACTOR DEFINITION ---------
 
 # ---- BEGIN VAR_CTE DEFINITION ---------
 
 
 def p_var_cte(p):
-    '''var_cte  : var_cteAuxID
+    '''var_cte  : var_cte_id
                 | var_cteAuxINT
                 | var_cteAuxFLOAT
                 | var_cteAuxSTRING
@@ -620,15 +668,48 @@ def p_var_cte(p):
         p[0] = p[1]
 
 
+def p_var_cte_id(p):
+    '''var_cte_id : var_cteAuxID var_cteAuxID1'''
+    global current_arr
+    if current_arr:
+        code_gen.final_arr(current_arr['virtual_address'], current_arr['type'], current_arr['dims'])
+        current_arr = None
+        code_gen.operators.pop()
+    p[0] = p[1]
+
 def p_var_cteAuxID(p):
     '''var_cteAuxID  : ID'''
     p[0] = p[1]
+    global current_arr
+
     if p[1] not in current_table.table and current_table != var_table:
-        code_gen.types.push(var_table.get_type(p[1]))
-        code_gen.addOperand(var_table.table[p[1]]['virtual_address'])
+        if var_table.get_is_array(p[1]):
+            current_arr = var_table.table[p[1]]
+            code_gen.operators.push('ARR')
+        else:
+            code_gen.types.push(var_table.get_type(p[1]))
+            code_gen.addOperand(var_table.table[p[1]]['virtual_address'])
     else:
-        code_gen.types.push(current_table.get_type(p[1]))
-        code_gen.addOperand(current_table.table[p[1]]['virtual_address'])
+        if current_table.get_is_array(p[1]):
+            current_arr = current_table.table[p[1]]
+            code_gen.operators.push('ARR')
+        else:
+            code_gen.types.push(current_table.get_type(p[1]))
+            code_gen.addOperand(current_table.table[p[1]]['virtual_address'])
+
+
+def p_var_cteAuxID1(p):
+    '''var_cteAuxID1    : arr_aux var_cteAuxID1
+                        | empty'''
+
+
+def p_arr_aux(p):
+    '''arr_aux : arr_exp'''
+    if current_arr:
+        code_gen.set_dim(current_arr['dims'])
+    else:
+        raise TypeError("Variable is not array")
+
 
 
 def p_var_cteAuxINT(p):
@@ -659,6 +740,7 @@ def p_var_cteAuxBOOL(p):
     code_gen.types.push("bool")
     code_gen.addOperand(p[1])
 
+
 # ---- END VAR_CTE DEFINITION ---------
 
 # ---- BEGIN TYPE_ATOMIC DEFINITION ---------
@@ -671,43 +753,43 @@ def p_type_atomic(p):
                     | STRING
                     | BOOL'''
     p[0] = p[1]
+
+
 # ---- END TYPE_ATOMIC DEFINITION ---------
 
 # ---- BEGIN TYPE DEFINITION ---------
 
 
 def p_type(p):
-    '''type : tp type_1'''
-    if p[2]:
-        p[0] = p[1] + p[2]
-    else:
-        p[0] = p[1]
-    current_table.set_type(p[0])
-
-
-def p_type_1(p):
-    '''type_1   : arr_dim type_2
-                | empty'''
-    if len(p) > 2:
-        p[0] = p[1] + p[2]
-    else:
-        p[0] = p[1]
-
-
-def p_type_2(p):
-    '''type_2   : arr_dim
-                | empty'''
-    p[0] = p[1]
-# ---- END TYPE DEFINITION ---------
-
-# ---- BEGIN TP DEFINITION ---------
-
-
-def p_tp(p):
-    '''tp   : type_atomic
+    '''type : type_atomic
             | ID'''
     p[0] = p[1]
-# ---- END TP DEFINITION ---------
+    current_table.set_type(p[1])
+
+
+# ---- END TYPE DEFINITION ---------
+
+# ---- BEGIN ID_ARR DEFINITION ---------
+
+
+def p_id_arr(p):
+    '''id_arr : ID id_arr_1'''
+    if len(p) > 2 and p[2]:
+        p[0] = p[1] + p[2]
+    else:
+        p[0] = p[1]
+
+
+def p_id_arr_1(p):
+    '''id_arr_1     : arr_dim id_arr_1
+                    | empty'''
+    if len(p) > 2 and p[2]:
+        p[0] = p[1] + p[2]
+    else:
+        p[0] = p[1]
+
+
+# ---- END ID_ARR DEFINITION ---------
 
 # ---- BEGIN ARR_DIM DEFINITION ---------
 
@@ -715,12 +797,20 @@ def p_tp(p):
 def p_arr_dim(p):
     '''arr_dim  : OPEN_SQRT_BRACKET CTE_I CLOSED_SQRT_BRACKET'''
     p[0] = p[1] + p[2] + p[3]
+
+
+def p_arr_exp(p):
+    '''arr_exp  : OPEN_SQRT_BRACKET expression CLOSED_SQRT_BRACKET'''
+    p[0] = p[1] + p[2] + p[3]
+    code_gen.arr_solve()
+
 # ---- END ARR_DIM DEFINITION ---------
 
 
 def p_empty(p):
     'empty :'
     pass
+
 
 # Error rule for syntax errors
 

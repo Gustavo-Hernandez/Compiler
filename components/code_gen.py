@@ -1,3 +1,4 @@
+import math
 from components.mem_manager import MemoryManager
 from .stack import Stack  # pylint: disable=relative-beyond-top-level
 
@@ -13,6 +14,7 @@ class CodeGenerator:
         self.par_counter = 0
         self.t_counter = 0
         self.counter = 1
+        self.dim_counter = 0
         self.current_scope = 'global'
         self.cube = {
             'int': {
@@ -168,7 +170,7 @@ class CodeGenerator:
     # Adding a plus or minus
     def addOperator_1(self, value):
         op_top = self.operators.top()
-        if op_top not in ['=', None, '(', '>', '==', '!=', '<', 'and', 'or']:
+        if op_top not in ['=', None, '(', '>', '==', '!=', '<', 'and', 'or', 'ARR']:
             self.solve()
             self.addOperator_1(value)
         else:
@@ -180,6 +182,7 @@ class CodeGenerator:
         operator = self.operators.pop()
         tp_der = self.types.pop()
         tp_iz = self.types.pop()
+
         if operator != '=':
             try:
                 tp_res = self.cube[tp_iz][tp_der][operator]
@@ -187,7 +190,7 @@ class CodeGenerator:
                 raise TypeError("Invalid operand types: " + tp_iz + " " +
                                 operator + " " + tp_der)
 
-            if(self.current_scope == 'module'):
+            if (self.current_scope == 'module'):
                 key = MemoryManager().request_address('temp', tp_res)
             else:
                 key = "t" + str(self.t_counter)
@@ -201,10 +204,14 @@ class CodeGenerator:
                 self.quadruples.append([operator, op_der, None, op_iz])
                 self.counter += 1
             else:
-                raise TypeError("Assignation types do not match")
+                raise TypeError("Assignation types do not match ", op_der, op_iz, operator)
 
     def final_solve(self):
         while self.operators.size() > 0:
+            self.solve()
+
+    def arr_solve(self):
+        while self.operators.top() != 'ARR':
             self.solve()
 
     def factor_solve(self):
@@ -324,12 +331,12 @@ class CodeGenerator:
         self.counter += 1
 
     def call_return(self, func, tp):
-        key = "t" + str(self.t_counter)
+        key = MemoryManager().request_address('temp', tp)
         self.t_counter += 1
         self.quadruples.append(['=', func, None, key])
         self.counter += 1
         self.types.push(tp)
-        return key
+        return str(key)
 
     def print_quads(self):
         print("\n----  Quadruples  -----")
@@ -337,3 +344,70 @@ class CodeGenerator:
         for quad in self.quadruples:
             print(i, quad)
             i += 1
+
+    def final_arr(self, va, tp, dims):
+        if self.dim_counter != len(dims):
+            raise IndexError("Array dimensions do not match with established " + str(len(dims)) + " dimensions")
+
+        operand = self.operands.pop()
+        self.types.pop()
+
+        key = MemoryManager().request_address('temp', tp)
+        self.t_counter += 1
+
+        self.quadruples.append(['+', operand, va, key])
+        self.operands.push("(" + str(key) + ")")
+        self.types.push(tp)
+        self.counter += 1
+        self.dim_counter = 0
+
+    def set_dim_mul(self, op, r):
+        key = MemoryManager().request_address('temp', 'int')
+        self.t_counter += 1
+
+        self.quadruples.append(['*', op, r, key])
+        self.counter += 1
+
+        return key
+
+    def set_dim_sum(self, r_op):
+        l_op = self.operands.pop()
+        self.types.pop()
+
+        key = MemoryManager().request_address('temp', 'int')
+        self.t_counter += 1
+
+        self.quadruples.append(['+', l_op, r_op, key])
+        self.counter += 1
+
+        self.operands.push(key)
+        self.types.push('int')
+
+    def set_dim(self, dims):
+        d = len(dims)
+        operand = self.operands.pop()
+        tp = self.types.pop()
+        r = math.prod(dims)//dims[self.dim_counter]
+
+        if tp != 'int':
+            raise TypeError('Index must be an integer value, received: ', tp)
+
+        if self.dim_counter == d:
+            raise IndexError("Array dimensions exceed declared dimensions of ", d)
+
+        self.quadruples.append(['VER', operand, 0, dims[self.dim_counter]])
+        self.counter += 1
+
+        if self.dim_counter == 0:
+            if d != 1:
+                res = self.set_dim_mul(operand, r)
+                self.operands.push(res)
+                self.types.push('int')
+        else:
+            if self.dim_counter == d - 1:
+                self.set_dim_sum(operand)
+            else:
+                operand = self.set_dim_mul(operand, r)
+                self.set_dim_sum(operand)
+
+        self.dim_counter += 1

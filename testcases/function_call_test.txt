@@ -6,7 +6,8 @@ private class classname : parentClass {
     }
 
     func int module2(){
-        return 4 + 2;
+        int z[1][2], j, p, y[1];
+        return 4 + 7 + z[0+1+2][1];
     }
 
     main(){

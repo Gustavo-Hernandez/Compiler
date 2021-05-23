@@ -27,15 +27,16 @@ class VirtualMachine:
         self.instruction_pointer = instruction_number - 1
 
     def process_instruction(self):
-        instruction = self.quadruples[self.instruction_pointer]
-        action_code = instruction[0]
-        left_operand = instruction[1]
-        right_operand = instruction[2]
-        destination = instruction[3]
-        if(action_code == 'goto'):
-            self.goto(destination)
-            return True
-        elif(action_code == "END"):
-            return False
-        else:
-            raise RuntimeError("Unimplemented action codes")
+        pass
+        #instruction = self.quadruples[self.instruction_pointer]
+        #action_code = instruction[0]
+        #left_operand = instruction[1]
+        #right_operand = instruction[2]
+        #destination = instruction[3]
+        #if(action_code == 'goto'):
+        #    self.goto(destination)
+        #    return True
+        #elif(action_code == "END"):
+        #    return False
+        #else:
+        #    raise RuntimeError("Unimplemented action codes")
