@@ -88,6 +88,9 @@ class MemoryManager (metaclass=MemoryManagerMeta):
             'string': 0,
             'bool': 0
         }
+        self.counter['pointers'] = {
+            'int': 0
+        }
 
     def get_module_counter(self):
         mem_space = {
@@ -98,7 +101,8 @@ class MemoryManager (metaclass=MemoryManagerMeta):
             't_int': self.counter['temp']['int'],
             't_float': self.counter['temp']['float'],
             't_string': self.counter['temp']['string'],
-            't_bool': self.counter['temp']['bool']
+            't_bool': self.counter['temp']['bool'],
+            'pointer': self.counter['pointers']['int']
         }
         return mem_space
 
