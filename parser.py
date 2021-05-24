@@ -77,6 +77,7 @@ def p_class_3(p):
                 | empty'''
     if not p[1]:
         code_gen.current_scope = 'module'
+        code_gen.reset_t_counter()
 
 
 def p_class_4(p):
@@ -167,7 +168,7 @@ def p_module_1(p):
                 | module_void'''
     var_tables[p[1]] = func_dir.get_var_table().table
     func_dir.delete_var_table(p[1])
-
+    code_gen.reset_t_counter()
 
 # ---- END MODULE DEFINITION ---------
 
@@ -185,7 +186,6 @@ def p_module_voidAux(p):
     func_dir.add_function(p[1], p[2], code_gen.counter)
     global current_table
     current_table = func_dir.get_var_table()
-    code_gen.reset_t_counter()
 
 
 # ---- END MODULE_VOID DEFINITION ---------
@@ -210,7 +210,6 @@ def p_module_retAux(p):
     var_table.register('global', cte_table)
     global current_table
     current_table = func_dir.get_var_table()
-    code_gen.reset_t_counter()
 
 
 def p_module_ret_1(p):

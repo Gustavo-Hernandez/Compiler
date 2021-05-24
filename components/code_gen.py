@@ -276,7 +276,7 @@ class CodeGenerator:
 
     def reset_t_counter(self):
         self.t_counter = 0
-        MemoryManager().reset_temp_counter()
+        MemoryManager().reset_module_context()
 
     def fill(self, pos, value):
         self.quadruples[pos][3] = value

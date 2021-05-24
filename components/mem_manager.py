@@ -75,7 +75,7 @@ class MemoryManager (metaclass=MemoryManagerMeta):
             }
         }
 
-    def reset_temp_counter(self):
+    def reset_module_context(self):
         self.counter['temp'] = {
             'int': 0,
             'float': 0,

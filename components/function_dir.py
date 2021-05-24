@@ -24,6 +24,8 @@ class FunctionDirectory:
     def store_param(self, type_atomic, id):
         if not id in self.params:
             self.params[id] = {'type': type_atomic}
+            print(id, type_atomic)
+            MemoryManager().request_address('local', type_atomic)
         else:
             raise KeyError("Duplicate parameter: " + id)
 
@@ -35,13 +37,6 @@ class FunctionDirectory:
         self.directory[id]['size'] = MemoryManager().get_module_counter()
         self.var_table = None
         self.params = {}
-
-    def getSizeOf(self, tp):
-        if tp in ['int', 'float', 'bool']:
-            return 24
-        elif tp in ['string', 'double']:
-            return 48
-        return 0
 
     def print(self):
         for f in self.directory:
