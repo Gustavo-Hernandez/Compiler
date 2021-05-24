@@ -7,6 +7,8 @@ from components.mem_manager import MemoryManager
 import ply.yacc as yacc
 import sys
 import re
+import csv
+import os
 
 # Get the token map from the lexer.  This is required.
 from lexer import tokens
@@ -365,7 +367,6 @@ def p_declaration_1Aux(p):
         current_table.store_id(p[1])
         current_table.set_array(False)
         p[0] = p[1]
-
 
 
 def p_declaration_1Aux2(p):
@@ -770,6 +771,7 @@ def p_arr_exp(p):
     code_gen.arr_solve()
     code_gen.operators.pop()
 
+
 def p_arr_expAux(p):
     '''arr_expAux  : OPEN_SQRT_BRACKET'''
     p[0] = p[1]
@@ -779,6 +781,7 @@ def p_arr_expAux(p):
 
 # ---- BEGIN ID_ARR DEFINITION --------
 
+
 def p_id_arr_var(p):
     '''id_arr_var : id_arr_varAuxID arr_exp_loop'''
     global current_arr
@@ -787,6 +790,7 @@ def p_id_arr_var(p):
         code_gen.final_arr(cte_mem, current_arr['type'], current_arr['dims'])
         current_arr = None
     p[0] = p[1]
+
 
 def p_id_arrID(p):
     '''id_arr_varAuxID  : ID'''
@@ -828,6 +832,17 @@ def print_grammar(p):
         print("grm: " + str(v))
 
 
+def export_quads():
+    dir_path = 'output'
+    if not os.path.isdir(dir_path):
+        os.makedirs(dir_path)
+    with open(dir_path + '/quads.csv', mode='w', newline='', encoding='utf-8') as quad_file:
+        quad_writer = csv.writer(
+            quad_file, quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        for quad in code_gen.quadruples:
+            quad_writer.writerow(quad)
+
+
 # Validate if a file was passed through the command line arguments.
 if len(sys.argv) > 1:
     with open(sys.argv[1], 'r') as file:
@@ -835,3 +850,4 @@ if len(sys.argv) > 1:
 
     # Parse the file content.
     result = parser.parse(file_content)
+    export_quads()
