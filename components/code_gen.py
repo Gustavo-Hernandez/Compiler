@@ -204,10 +204,10 @@ class CodeGenerator:
                 self.quadruples.append([operator, op_der, None, op_iz])
                 self.counter += 1
             else:
-                raise TypeError("Assignation types do not match ", op_der, op_iz, operator)
+                raise TypeError("Assignation types do not match ",
+                                op_der, op_iz, operator)
 
     def final_solve(self):
-        print(self.quadruples)
         while self.operators.size() > 0:
             self.solve()
 
@@ -348,7 +348,8 @@ class CodeGenerator:
 
     def final_arr(self, va, tp, dims):
         if self.dim_counter != len(dims):
-            raise IndexError("Array dimensions do not match with established " + str(len(dims)) + " dimensions")
+            raise IndexError(
+                "Array dimensions do not match with established " + str(len(dims)) + " dimensions")
 
         operand = self.operands.pop()
         self.types.pop()
@@ -395,9 +396,11 @@ class CodeGenerator:
             raise TypeError('Index must be an integer value, received: ', tp)
 
         if self.dim_counter == d:
-            raise IndexError("Array dimensions exceed declared dimensions of ", d)
+            raise IndexError(
+                "Array dimensions exceed declared dimensions of ", d)
 
-        self.quadruples.append(['VER', operand, cypher, dims[self.dim_counter][0] - 1])
+        self.quadruples.append(
+            ['VER', operand, cypher, dims[self.dim_counter][0] - 1])
         self.counter += 1
 
         if self.dim_counter == 0:
