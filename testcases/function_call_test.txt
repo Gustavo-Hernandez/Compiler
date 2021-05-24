@@ -16,5 +16,7 @@ private class classname : parentClass {
         module1(4 + 5, true);
         int b = 4 + 5;
         int c = module2() + 2;
+        int z[4][5][2];
+        a = z[0][1][2] + 3;
     }
 }

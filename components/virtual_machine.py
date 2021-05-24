@@ -16,7 +16,7 @@ class VirtualMachine:
         # Request main memory
         memspace = self.func_dir['main']['size']
         main_memory = MemoryManager().request_localmemory(
-            memspace['l_int'], memspace['l_float'], memspace['l_string'], memspace['l_bool'], memspace['t_int'], memspace['t_float'], memspace['t_string'], memspace['t_bool'])
+            memspace['l_int'], memspace['l_float'], memspace['l_string'], memspace['l_bool'], memspace['t_int'], memspace['t_float'], memspace['t_string'], memspace['t_bool'], memspace['pointers'])
 
         print(main_memory)
         while True:
@@ -33,10 +33,10 @@ class VirtualMachine:
         #left_operand = instruction[1]
         #right_operand = instruction[2]
         #destination = instruction[3]
-        #if(action_code == 'goto'):
+        # if(action_code == 'goto'):
         #    self.goto(destination)
         #    return True
-        #elif(action_code == "END"):
+        # elif(action_code == "END"):
         #    return False
-        #else:
+        # else:
         #    raise RuntimeError("Unimplemented action codes")

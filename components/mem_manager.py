@@ -102,7 +102,7 @@ class MemoryManager (metaclass=MemoryManagerMeta):
             't_float': self.counter['temp']['float'],
             't_string': self.counter['temp']['string'],
             't_bool': self.counter['temp']['bool'],
-            'pointer': self.counter['pointers']['int']
+            'pointers': self.counter['pointers']['int']
         }
         return mem_space
 
@@ -158,7 +158,7 @@ class MemoryManager (metaclass=MemoryManagerMeta):
         # If memory address not in range return error.
         raise MemoryError("Invalid Memory Address")
 
-    def request_localmemory(self, l_int, l_float, l_string, l_bool, t_int, t_float, t_string, t_bool):
+    def request_localmemory(self, l_int, l_float, l_string, l_bool, t_int, t_float, t_string, t_bool, pointers):
         # TODO: Validate mem in range values.
         l_int_space = list(
             range(self.map['local']['int'][0], self.map['local']['int'][0] + l_int))
@@ -176,14 +176,16 @@ class MemoryManager (metaclass=MemoryManagerMeta):
             range(self.map['temp']['string'][0], self.map['temp']['string'][0] + t_string))
         t_bool_space = list(
             range(self.map['temp']['bool'][0], self.map['temp']['bool'][0] + t_bool))
+        pointer_space = list(
+            range(self.map['pointers']['int'][0], self.map['pointers']['int'][0] + pointers))
 
         spaces = l_int_space + l_float_space + l_string_space + l_bool_space + \
-            t_int_space + t_float_space + t_string_space + t_bool_space
+            t_int_space + t_float_space + t_string_space + t_bool_space + pointer_space
 
         addresses = list(map(lambda x: (x, None), spaces))
         return dict(addresses)
 
-    def request_globalmemory(self, g_int, g_float, g_string, g_bool, t_int, t_float, t_string, t_bool):
+    def request_globalmemory(self, g_int, g_float, g_string, g_bool, t_int, t_float, t_string, t_bool, pointers):
         # TODO: Validate mem in range values.
         g_int_space = list(
             range(self.map['global']['int'][0], self.map['global']['int'][0] + g_int))
@@ -201,9 +203,11 @@ class MemoryManager (metaclass=MemoryManagerMeta):
             range(self.map['global']['string'][0], self.map['global']['string'][0] + t_string))
         t_bool_space = list(
             range(self.map['global']['bool'][0], self.map['global']['bool'][0] + t_bool))
+        pointer_space = list(
+            range(self.map['pointers']['int'][0], self.map['pointers']['int'][0] + pointers))
 
         spaces = g_int_space + g_float_space + g_string_space + g_bool_space + \
-            t_int_space + t_float_space + t_string_space + t_bool_space
+            t_int_space + t_float_space + t_string_space + t_bool_space + pointer_space
 
         addresses = list(map(lambda x: (x, None), spaces))
         return dict(addresses)
