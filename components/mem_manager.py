@@ -181,26 +181,26 @@ class MemoryManager (metaclass=MemoryManagerMeta):
         # If memory address not in range return error.
         raise MemoryError("Invalid Memory Address")
 
-    def request_localmemory(self, l_int, l_float, l_string, l_bool, t_int, t_float, t_string, t_bool, pointers):
+    def request_localmemory(self, memspace):
         # TODO: Validate mem in range values.
         l_int_space = list(
-            range(self.map['local']['int'][0], self.map['local']['int'][0] + l_int))
+            range(self.map['local']['int'][0], self.map['local']['int'][0] + memspace[0]))
         l_float_space = list(
-            range(self.map['local']['float'][0], self.map['local']['float'][0] + l_float))
+            range(self.map['local']['float'][0], self.map['local']['float'][0] + memspace[1]))
         l_string_space = list(
-            range(self.map['local']['string'][0], self.map['local']['string'][0] + l_string))
+            range(self.map['local']['string'][0], self.map['local']['string'][0] + memspace[2]))
         l_bool_space = list(
-            range(self.map['local']['bool'][0], self.map['local']['bool'][0] + l_bool))
+            range(self.map['local']['bool'][0], self.map['local']['bool'][0] + memspace[3]))
         t_int_space = list(
-            range(self.map['temp']['int'][0], self.map['temp']['int'][0] + t_int))
+            range(self.map['temp']['int'][0], self.map['temp']['int'][0] + memspace[4]))
         t_float_space = list(
-            range(self.map['temp']['float'][0], self.map['temp']['float'][0] + t_float))
+            range(self.map['temp']['float'][0], self.map['temp']['float'][0] + memspace[5]))
         t_string_space = list(
-            range(self.map['temp']['string'][0], self.map['temp']['string'][0] + t_string))
+            range(self.map['temp']['string'][0], self.map['temp']['string'][0] + memspace[6]))
         t_bool_space = list(
-            range(self.map['temp']['bool'][0], self.map['temp']['bool'][0] + t_bool))
+            range(self.map['temp']['bool'][0], self.map['temp']['bool'][0] + memspace[7]))
         pointer_space = list(
-            range(self.map['pointers']['int'][0], self.map['pointers']['int'][0] + pointers))
+            range(self.map['pointers']['int'][0], self.map['pointers']['int'][0] + memspace[8]))
 
         spaces = l_int_space + l_float_space + l_string_space + l_bool_space + \
             t_int_space + t_float_space + t_string_space + t_bool_space + pointer_space
@@ -208,26 +208,26 @@ class MemoryManager (metaclass=MemoryManagerMeta):
         addresses = list(map(lambda x: (x, None), spaces))
         return dict(addresses)
 
-    def request_globalmemory(self, g_int, g_float, g_string, g_bool, t_int, t_float, t_string, t_bool, pointers):
+    def request_globalmemory(self, memspace):
         # TODO: Validate mem in range values.
         g_int_space = list(
-            range(self.map['global']['int'][0], self.map['global']['int'][0] + g_int))
+            range(self.map['global']['int'][0], self.map['global']['int'][0] + memspace[0]))
         g_float_space = list(
-            range(self.map['global']['float'][0], self.map['global']['float'][0] + g_float))
+            range(self.map['global']['float'][0], self.map['global']['float'][0] + memspace[1]))
         g_string_space = list(
-            range(self.map['global']['string'][0], self.map['global']['string'][0] + g_string))
+            range(self.map['global']['string'][0], self.map['global']['string'][0] + memspace[2]))
         g_bool_space = list(
-            range(self.map['global']['bool'][0], self.map['global']['bool'][0] + g_bool))
+            range(self.map['global']['bool'][0], self.map['global']['bool'][0] + memspace[3]))
         t_int_space = list(
-            range(self.map['global']['int'][0], self.map['global']['int'][0] + t_int))
+            range(self.map['global']['int'][0], self.map['global']['int'][0] + memspace[4]))
         t_float_space = list(
-            range(self.map['global']['float'][0], self.map['global']['float'][0] + t_float))
+            range(self.map['global']['float'][0], self.map['global']['float'][0] + memspace[5]))
         t_string_space = list(
-            range(self.map['global']['string'][0], self.map['global']['string'][0] + t_string))
+            range(self.map['global']['string'][0], self.map['global']['string'][0] + memspace[6]))
         t_bool_space = list(
-            range(self.map['global']['bool'][0], self.map['global']['bool'][0] + t_bool))
+            range(self.map['global']['bool'][0], self.map['global']['bool'][0] + memspace[7]))
         pointer_space = list(
-            range(self.map['pointers']['int'][0], self.map['pointers']['int'][0] + pointers))
+            range(self.map['pointers']['int'][0], self.map['pointers']['int'][0] + memspace[8]))
 
         spaces = g_int_space + g_float_space + g_string_space + g_bool_space + \
             t_int_space + t_float_space + t_string_space + t_bool_space + pointer_space

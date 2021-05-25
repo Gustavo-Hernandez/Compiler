@@ -27,7 +27,7 @@ class FileLoader:
                 self.__functions[line[0]] = {
                     'type': line[1], 'params': line[2:len(line)-1]}
             elif(sections[section_counter] == "memory"):
-                self.__memory[line[0]] = {'size': line[1:len(line)-1]}
+                self.__memory[line[0]] = self.__process_size(line)
             elif(sections[section_counter] == "const"):
                 self.__const[int(line[0])] = self.__process_const(line[1])
 
@@ -48,7 +48,12 @@ class FileLoader:
             n_const = True
         elif const == "false":
             n_const = False
+        else:
+            n_const = const
         return n_const
+
+    def __process_size(self, line):
+        return list(map(lambda x: int(x), (line[1:len(line)-1])))
 
     def get_data(self):
         return (self.__quads, self.__functions, self.__memory, self.__const)
