@@ -35,12 +35,6 @@ code_gen = CodeGenerator()
 
 def p_class(p):
     '''class    : classAux class_1'''
-    func_dir.print()
-    print("\nVariable Tables")
-    var_tables['const'] = cte_table.table
-    for var in var_tables:
-        print(var, ":", var_tables[var])
-    print("\n")
 
 
 def p_classAux(p):
@@ -834,14 +828,39 @@ def print_grammar(p):
 
 
 def export_quads():
+    quads = ""
+    for quad in code_gen.quadruples:
+        arr = [str(p) if p is not None else '$' for p in quad]
+        quads += arr[0] + " " + arr[1] + " " + arr[2] + " " + arr[3] + "\n"
+    return quads
+
+
+def export_functions():
+    vars_export = ""
+    for func in func_dir.directory:
+        rc = " "
+        for dim_size in func_dir.directory[func]['size']:
+            rc += str(func_dir.directory[func]['size'][dim_size]) + " "
+        vars_export += func + rc + "\n"
+    return vars_export
+
+
+def export_constants():
+    constants = ""
+    for cte in cte_table.table:
+        constants += str(cte_table.table[cte]
+                         ['virtual_address']) + " " + str(cte) + "\n"
+    return constants
+
+
+def generateObj():
     dir_path = 'output'
     if not os.path.isdir(dir_path):
         os.makedirs(dir_path)
-    with open(dir_path + '/quads.csv', mode='w', newline='', encoding='utf-8') as quad_file:
-        quad_writer = csv.writer(
-            quad_file, quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        for quad in code_gen.quadruples:
-            quad_writer.writerow(quad)
+    output = export_quads() + "\n" + export_functions() + \
+        "\n" + export_constants()
+    filewriter = open(dir_path + "/out.obj", 'w')
+    filewriter.write(output)
 
 
 # Validate if a file was passed through the command line arguments.
@@ -851,4 +870,5 @@ if len(sys.argv) > 1:
 
     # Parse the file content.
     result = parser.parse(file_content)
-    export_quads()
+    generateObj()
+    export_functions()
