@@ -4,16 +4,18 @@ from .variable_table import VariableTable  # pylint: disable=relative-beyond-top
 
 class FunctionDirectory:
 
-    def __init__(self, global_vartable):
+    def __init__(self):
         self.directory = {}
         self.var_table = None
         self.params = {}
-        self.global_vartable = global_vartable
+        self.global_vartable = VariableTable()
 
     def add_function(self, return_type, id, pos):
         if not id in self.directory:
             if not id in self.global_vartable.table:
                 self.var_table = VariableTable()
+                if id == 'program':
+                    self.global_vartable = self.var_table
                 self.directory[id] = {
                     'return_type': return_type, 'params': self.params, 'position': pos}
                 for param in self.params:
@@ -38,6 +40,14 @@ class FunctionDirectory:
     def delete_var_table(self, id):
         # TODO: ADD PARAMS TO SIZE CALCULATION
         self.directory[id]['size'] = MemoryManager().get_module_counter()
+        clean_vartable = self.clean_export()
+        self.var_table = None
+        self.params = {}
+        return clean_vartable
+
+    def store_global_vars(self, id):
+        # TODO: ADD PARAMS TO SIZE CALCULATION
+        self.directory[id]['size'] = MemoryManager().get_global_counter()
         clean_vartable = self.clean_export()
         self.var_table = None
         self.params = {}

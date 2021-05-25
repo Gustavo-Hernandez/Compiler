@@ -37,7 +37,6 @@ def p_class(p):
     '''class    : classAux class_1'''
     func_dir.print()
     print("\nVariable Tables")
-    var_tables['global'] = var_table.table
     var_tables['const'] = cte_table.table
     for var in var_tables:
         print(var, ":", var_tables[var])
@@ -47,20 +46,26 @@ def p_class(p):
 def p_classAux(p):
     '''classAux    : visibility CLASS ID'''
     global var_table, func_dir, current_table
-    var_table = VariableTable()
-    func_dir = FunctionDirectory(var_table)
+    func_dir = FunctionDirectory()
+    func_dir.add_function('np', 'program', 0)
+    var_table = func_dir.get_var_table()
     current_table = var_table
     code_gen.add_main()
 
 
 def p_class_1(p):
-    '''class_1  : class_2 OPEN_BRACKET class_3 class_4 class_5 CLOSED_BRACKET'''
+    '''class_1  : class_1Aux class_4 class_5 CLOSED_BRACKET'''
     code_gen.end_prog()
     val = func_dir.directory.get('main', None)
     if val:
         code_gen.add_main_dir(val['position'])
     else:
         code_gen.add_main_dir(code_gen.counter)
+
+
+def p_class_1Aux(p):
+    '''class_1Aux  : class_2 OPEN_BRACKET class_3'''
+    var_tables['global'] = func_dir.store_global_vars('program')
 
 
 def p_class_2(p):
