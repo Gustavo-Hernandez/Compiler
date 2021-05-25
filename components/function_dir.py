@@ -16,6 +16,11 @@ class FunctionDirectory:
                 self.var_table = VariableTable()
                 self.directory[id] = {
                     'return_type': return_type, 'params': self.params, 'position': pos}
+                for param in self.params:
+                    type_atomic = self.params[param]['type']
+                    address = MemoryManager().request_address('local', type_atomic)
+                    self.var_table.table[param] = {
+                        'type': type_atomic, 'virtual_address': address, 'is_array': False}
             else:
                 raise KeyError("Duplicate identifier: " + id)
         else:
@@ -24,8 +29,6 @@ class FunctionDirectory:
     def store_param(self, type_atomic, id):
         if not id in self.params:
             self.params[id] = {'type': type_atomic}
-            print(id, type_atomic)
-            MemoryManager().request_address('local', type_atomic)
         else:
             raise KeyError("Duplicate parameter: " + id)
 

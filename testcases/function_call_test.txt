@@ -3,6 +3,7 @@ private class classname : parentClass {
 
     func void module1(int j, bool k){
        int a,b,c;
+       a = j+1;
     }
 
     func int module2(){
