@@ -866,8 +866,8 @@ def generateObj():
     dir_path = 'output'
     if not os.path.isdir(dir_path):
         os.makedirs(dir_path)
-    output = export_quads() + "\n" + export_functions_size() + \
-        "\n" + export_functions_signature() + "\n" + export_constants()
+    output = export_quads() + "\n" + export_functions_signature() + \
+        "\n" + export_functions_size() + "\n" + export_constants()
     filewriter = open(dir_path + "/out.obj", 'w')
     filewriter.write(output)
 
@@ -880,4 +880,3 @@ if len(sys.argv) > 1:
     # Parse the file content.
     result = parser.parse(file_content)
     generateObj()
-    print(func_dir.directory)
