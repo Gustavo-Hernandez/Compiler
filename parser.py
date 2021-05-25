@@ -162,8 +162,9 @@ def p_module(p):
 def p_module_1(p):
     '''module_1 : module_ret
                 | module_void'''
-    var_tables[p[1]] = func_dir.get_var_table().table
-    func_dir.delete_var_table(p[1])
+    # Release Memory and Store clean vartable
+    var_tables[p[1]] = func_dir.delete_var_table(p[1])
+    # Reset temporal Counters
     code_gen.reset_t_counter()
 
 # ---- END MODULE DEFINITION ---------
