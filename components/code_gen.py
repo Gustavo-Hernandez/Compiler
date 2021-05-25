@@ -298,7 +298,7 @@ class CodeGenerator:
         self.quadruples.append(['ERA', func, None, None])
         self.counter += 1
 
-    def param(self, tp):
+    def param(self, tp, address):
         exp = self.types.pop()
 
         if exp != tp:
@@ -306,7 +306,7 @@ class CodeGenerator:
                 "Mismatch on parameter types: expected: " + tp + ", received: " + exp)
         else:
             self.quadruples.append(
-                ['PARAM', self.operands.pop(), None, 'par' + str(self.par_counter)])
+                ['PARAM', self.operands.pop(), None, address])
             self.par_counter += 1
             self.counter += 1
 
@@ -322,7 +322,8 @@ class CodeGenerator:
             raise TypeError(
                 "Mismatch on return type: expected: " + tp + ", received: " + res)
         else:
-            self.quadruples.append(['RETURN', None, None, self.operands.pop()])
+            val = self.operands.pop()
+            self.quadruples.append(['RETURN', None, None, val])
             self.counter += 1
 
     def go_sub(self, func):

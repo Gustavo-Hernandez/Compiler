@@ -24,7 +24,7 @@ class FileLoader:
                 self.__quads.append(line)
             elif(sections[section_counter] == "signatures"):
                 self.__functions[line[0]] = {
-                    'type': line[1], 'params': line[2:len(line)-1]}
+                    'type': line[1], 'position': int(line[2]), 'params': line[3:len(line)-1]}
             elif(sections[section_counter] == "memory"):
                 self.__memory[line[0]] = self.__process_size(line)
             elif(sections[section_counter] == "const"):

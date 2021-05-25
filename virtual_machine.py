@@ -7,7 +7,10 @@ from vm.file_loader import FileLoader
 quad_pointer = 0
 const_table = None
 global_memory = None
+funcs = None
+memories = None
 memory_stack = Stack()
+quad_pointer_stack = Stack()
 
 
 def get_value(address):
@@ -39,11 +42,10 @@ def store_value(value, address):
 
 
 def process_quad(quad):
-    global quad_pointer
-
-    if(quad[0] == "goto"):
+    global quad_pointer, functions, memory
+    if quad[0] == "goto":
         quad_pointer = quad[3]-1
-    elif(quad[0] == "+"):
+    elif quad[0] == "+":
         izq = get_value(quad[1])
         der = get_value(quad[2])
         if type(izq) == str:
@@ -54,72 +56,93 @@ def process_quad(quad):
             result = izq + der
         store_value(result, quad[3])
         quad_pointer += 1
-    elif(quad[0] == "-"):
+    elif quad[0] == "-":
         izq = get_value(quad[1])
         der = get_value(quad[2])
         result = izq - der
         store_value(result, quad[3])
         quad_pointer += 1
-    elif (quad[0] == "*"):
+    elif quad[0] == "*":
         izq = get_value(quad[1])
         der = get_value(quad[2])
         result = izq * der
         store_value(result, quad[3])
         quad_pointer += 1
-    elif (quad[0] == "/"):
+    elif quad[0] == "/":
         izq = get_value(quad[1])
         der = get_value(quad[2])
         result = izq / der
         store_value(result, quad[3])
         quad_pointer += 1
-    elif (quad[0] == "="):
+    elif quad[0] == "=":
         value = get_value(quad[1])
         store_value(value, quad[3])
         quad_pointer += 1
-    elif(quad[0] == "print"):
+    elif quad[0] == "print":
         text = get_value(quad[3])
         print(text)
         quad_pointer += 1
-    elif (quad[0] == ">"):
+    elif quad[0] == ">":
         izq = get_value(quad[1])
         der = get_value(quad[2])
         store_value(izq > der, quad[3])
         quad_pointer += 1
-    elif (quad[0] == "<"):
+    elif quad[0] == "<":
         izq = get_value(quad[1])
         der = get_value(quad[2])
         store_value(izq < der, quad[3])
         quad_pointer += 1
-    elif (quad[0] == "=="):
+    elif quad[0] == "==":
         izq = get_value(quad[1])
         der = get_value(quad[2])
         store_value(izq == der, quad[3])
         quad_pointer += 1
-    elif (quad[0] == "<="):
+    elif quad[0] == "<=":
         izq = get_value(quad[1])
         der = get_value(quad[2])
         store_value(izq <= der, quad[3])
         quad_pointer += 1
-    elif (quad[0] == ">="):
+    elif quad[0] == ">=":
         izq = get_value(quad[1])
         der = get_value(quad[2])
         store_value(izq >= der, quad[3])
         quad_pointer += 1
-    elif (quad[0] == "gotoF"):
+    elif quad[0] == "gotoF":
         var = get_value(quad[1])
         if var:
             quad_pointer += 1
         else:
             quad_pointer = quad[3]-1
+    elif quad[0] == "ERA":
+        localmemory = MemoryManager().request_localmemory(memories[quad[1]])
+        memory_stack.push(localmemory)
+        quad_pointer += 1
+    elif quad[0] == "ERA":
+        localmemory = MemoryManager().request_localmemory(memories[quad[1]])
+        memory_stack.push(localmemory)
+        quad_pointer += 1
+    elif quad[0] == "PARAM":
+        value = get_value(quad[1])
+        store_value(value, quad[3])
+        quad_pointer += 1
+    elif quad[0] == "GOSUB":
+        quad_pointer_stack.push(quad_pointer)
+        quad_pointer = funcs[quad[3]]['position'] - 1
+    elif quad[0] == "ENDFUNC":
+        quad_pointer = quad_pointer_stack.pop()
+        quad_pointer += 1
     else:
         raise RuntimeError("Unimplemented Action Code: " + quad[0])
 
 
 def main():
-    global const_table, global_memory, memory_stack
+    global const_table, global_memory, memory_stack, funcs, memories
 
     file_loader = FileLoader("./output/out.obj")
     (quadruples, functions, memory, constants) = file_loader.get_data()
+
+    funcs = functions
+    memories = memory
 
     const_table = constants
     global_memory = MemoryManager().request_globalmemory(memory['program'])

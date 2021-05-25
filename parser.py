@@ -300,7 +300,8 @@ def p_func_call_aux_2(p):
     code_gen.final_solve()
     tp = list(func_dir.directory[current_function]['params'].values())
     if len(tp) > code_gen.par_counter:
-        code_gen.param(tp[code_gen.par_counter]['type'])
+        code_gen.param(tp[code_gen.par_counter]['type'],
+                       tp[code_gen.par_counter]['virtual_address'])
     else:
         raise TypeError(
             "Function parameters exceed expected parameters")
@@ -850,7 +851,8 @@ def export_functions_size():
 def export_functions_signature():
     signatures_export = ""
     for func in func_dir.directory:
-        rc = " " + func_dir.directory[func]['return_type'] + " "
+        rc = " " + func_dir.directory[func]['return_type'] + \
+            " " + str(func_dir.directory[func]['position']) + " "
         for param in func_dir.directory[func]['params']:
             rc += str(func_dir.directory[func]['params'][param]['type']) + " "
         signatures_export += func + rc + "\n"

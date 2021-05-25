@@ -20,7 +20,7 @@ class FunctionDirectory:
                     'return_type': return_type, 'params': self.params, 'position': pos}
                 for param in self.params:
                     type_atomic = self.params[param]['type']
-                    address = MemoryManager().request_address('local', type_atomic)
+                    address = self.params[param]['virtual_address']
                     self.var_table.table[param] = {
                         'type': type_atomic, 'virtual_address': address, 'is_array': False}
             else:
@@ -30,7 +30,8 @@ class FunctionDirectory:
 
     def store_param(self, type_atomic, id):
         if not id in self.params:
-            self.params[id] = {'type': type_atomic}
+            address = MemoryManager().request_address('local', type_atomic)
+            self.params[id] = {'type': type_atomic, "virtual_address": address}
         else:
             raise KeyError("Duplicate parameter: " + id)
 
