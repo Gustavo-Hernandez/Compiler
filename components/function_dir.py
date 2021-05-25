@@ -35,10 +35,23 @@ class FunctionDirectory:
     def delete_var_table(self, id):
         # TODO: ADD PARAMS TO SIZE CALCULATION
         self.directory[id]['size'] = MemoryManager().get_module_counter()
+        clean_vartable = self.clean_export()
         self.var_table = None
         self.params = {}
+        return clean_vartable
 
     def print(self):
         for f in self.directory:
             print("\n-------" + f + "---------")
             print("Func info: ", self.directory[f])
+
+    # Cleans var table before export.
+    # Returns only the data needed by VM.
+    def clean_export(self):
+        clean_table = {}
+        clean_var = {}
+        for var in self.var_table.table:
+            clean_var['type'] = self.var_table.table[var]['type']
+            clean_var['virtual_address'] = self.var_table.table[var]['virtual_address']
+            clean_table[var] = clean_var
+        return clean_table

@@ -36,16 +36,12 @@ code_gen = CodeGenerator()
 def p_class(p):
     '''class    : classAux class_1'''
     func_dir.print()
-    code_gen.print_quads()
-
     print("\nVariable Tables")
     var_tables['global'] = var_table.table
     var_tables['const'] = cte_table.table
     for var in var_tables:
         print(var, ":", var_tables[var])
     print("\n")
-    vm = VirtualMachine(code_gen.quadruples, func_dir.directory, var_tables)
-    vm.start()
 
 
 def p_classAux(p):

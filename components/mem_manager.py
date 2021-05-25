@@ -106,12 +106,35 @@ class MemoryManager (metaclass=MemoryManagerMeta):
         }
         return mem_space
 
+    def get_global_counter(self):
+        mem_space = {
+            'g_int': self.counter['global']['int'],
+            'g_float': self.counter['global']['float'],
+            'g_string': self.counter['global']['string'],
+            'g_bool': self.counter['global']['bool'],
+            't_int': self.counter['temp']['int'],
+            't_float': self.counter['temp']['float'],
+            't_string': self.counter['temp']['string'],
+            't_bool': self.counter['temp']['bool'],
+            'pointers': self.counter['pointers']['int']
+        }
+        return mem_space
+
     # Request and Address given a scope and type
     # The return value is an available address as an integer.
     def request_address(self, scope, tp):
         nextAddress = self.map[scope][tp][0] + self.counter[scope][tp]
         if(nextAddress <= self.map[scope][tp][1]):
             self.counter[scope][tp] += 1
+            return nextAddress
+        raise MemoryError("Insuficient memory to assign a new address")
+
+    def request_address_block(self, scope, tp, size):
+        if size < 1:
+            raise ValueError("Address block must be greater than 1.")
+        nextAddress = self.map[scope][tp][0] + self.counter[scope][tp]
+        if(nextAddress <= self.map[scope][tp][1]):
+            self.counter[scope][tp] += size
             return nextAddress
         raise MemoryError("Insuficient memory to assign a new address")
 

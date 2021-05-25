@@ -19,30 +19,28 @@ class VariableTable:
                 is_array = self.is_array.pop(0)
                 if is_array:
                     d = self.dims.pop(0)
-                    m = math.prod(d)
+                    size = math.prod(d)
+                    m = size
                     dims = []
                     for dim in d:
                         m = m//dim
                         m_dir = cte_table.insert_cte(m, 'int')
                         dim_dir = cte_table.insert_cte(dim, 'int')
                         dims.append([dim_dir, m_dir])
+
+                    virtualAddress = self.requestArrayAddress(
+                        scope, self.type_var, size)
                 else:
                     dims = None
+                    virtualAddress = self.requestAddress(scope, self.type_var)
 
-                if(scope == 'global'):
-                    self.table[v] = {
-                        'type': self.type_var,
-                        'virtual_address': MemoryManager().request_address(scope, self.type_var),
-                        'is_array': is_array,
-                        'dims': dims
-                    }
-                else:
-                    self.table[v] = {
-                        'type': self.type_var,
-                        'virtual_address': MemoryManager().request_address('local', self.type_var),
-                        'is_array': is_array,
-                        'dims': dims
-                    }
+                self.table[v] = {
+                    'type': self.type_var,
+                    'virtual_address': virtualAddress,
+                    'is_array': is_array,
+                    'dims': dims
+                }
+
         self.queue = []
         self.type_var = None
         self.is_array = []
@@ -74,6 +72,20 @@ class VariableTable:
             return self.table[val]['is_array']
         else:
             raise KeyError("Variable " + val + " is not defined")
+
+    def requestArrayAddress(self, scope, type_var, size):
+        if(scope == 'global'):
+            virtual_address = MemoryManager().request_address_block(scope, type_var, size)
+        else:
+            virtual_address = MemoryManager().request_address_block('local', type_var, size)
+        return virtual_address
+
+    def requestAddress(self, scope, type_var):
+        if(scope == 'global'):
+            virtual_address = MemoryManager().request_address(scope, type_var)
+        else:
+            virtual_address = MemoryManager().request_address('local', type_var)
+        return virtual_address
 
     def insert_cte(self, val, tp):
         if val in self.table:
