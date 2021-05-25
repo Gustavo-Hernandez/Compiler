@@ -15,7 +15,6 @@ from lexer import tokens
 from components.variable_table import VariableTable
 from components.function_dir import FunctionDirectory
 from components.code_gen import CodeGenerator
-from components.virtual_machine import VirtualMachine
 
 var_tables = {}
 cte_table = VariableTable()
@@ -835,14 +834,24 @@ def export_quads():
     return quads
 
 
-def export_functions():
-    vars_export = ""
+def export_functions_size():
+    size_export = ""
     for func in func_dir.directory:
         rc = " "
         for dim_size in func_dir.directory[func]['size']:
             rc += str(func_dir.directory[func]['size'][dim_size]) + " "
-        vars_export += func + rc + "\n"
-    return vars_export
+        size_export += func + rc + "\n"
+    return size_export
+
+
+def export_functions_signature():
+    signatures_export = ""
+    for func in func_dir.directory:
+        rc = " " + func_dir.directory[func]['return_type'] + " "
+        for param in func_dir.directory[func]['params']:
+            rc += str(func_dir.directory[func]['params'][param]['type']) + " "
+        signatures_export += func + rc + "\n"
+    return signatures_export
 
 
 def export_constants():
@@ -857,8 +866,8 @@ def generateObj():
     dir_path = 'output'
     if not os.path.isdir(dir_path):
         os.makedirs(dir_path)
-    output = export_quads() + "\n" + export_functions() + \
-        "\n" + export_constants()
+    output = export_quads() + "\n" + export_functions_size() + \
+        "\n" + export_functions_signature() + "\n" + export_constants()
     filewriter = open(dir_path + "/out.obj", 'w')
     filewriter.write(output)
 
@@ -871,4 +880,4 @@ if len(sys.argv) > 1:
     # Parse the file content.
     result = parser.parse(file_content)
     generateObj()
-    export_functions()
+    print(func_dir.directory)
