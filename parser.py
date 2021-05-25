@@ -25,6 +25,7 @@ called_function = None
 current_function = None
 current_arr = None
 code_gen = CodeGenerator()
+err = False
 
 
 # Grammars Definition
@@ -43,7 +44,6 @@ def p_classAux(p):
     func_dir.add_function('np', 'program', 0)
     var_table = func_dir.get_var_table()
     current_table = var_table
-    code_gen.add_main()
 
 
 def p_class_1(p):
@@ -59,6 +59,7 @@ def p_class_1(p):
 def p_class_1Aux(p):
     '''class_1Aux  : class_2 OPEN_BRACKET class_3'''
     var_tables['global'] = func_dir.store_global_vars('program')
+    code_gen.add_main()
 
 
 def p_class_2(p):
@@ -67,7 +68,7 @@ def p_class_2(p):
 
 
 def p_class_3(p):
-    '''class_3  : statement class_3
+    '''class_3  : statementAux class_3
                 | empty'''
     if not p[1]:
         code_gen.current_scope = 'module'
@@ -814,6 +815,8 @@ def p_empty(p):
 
 
 def p_error(p):
+    global err
+    err = True
     print("Syntax error in input!")
 
 
@@ -879,4 +882,5 @@ if len(sys.argv) > 1:
 
     # Parse the file content.
     result = parser.parse(file_content)
-    generateObj()
+    if not err:
+        generateObj()

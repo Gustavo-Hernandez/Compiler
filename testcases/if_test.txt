@@ -1,4 +1,5 @@
 private class classname : parentClass {
+    int a = 1;
     main(){
         int a, b;
         float x;
@@ -8,7 +9,6 @@ private class classname : parentClass {
             a = 6;
         }
         
-        x = 2.0;
-        b = 2;
+        print(a+"");
     }
 }

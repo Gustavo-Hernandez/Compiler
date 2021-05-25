@@ -190,10 +190,7 @@ class CodeGenerator:
                 raise TypeError("Invalid operand types: " + tp_iz + " " +
                                 operator + " " + tp_der)
 
-            if (self.current_scope == 'module'):
-                key = MemoryManager().request_address('temp', tp_res)
-            else:
-                key = "t" + str(self.t_counter)
+            key = MemoryManager().request_address('temp', tp_res)
             self.t_counter += 1
             self.quadruples.append([operator, op_iz, op_der, key])
             self.types.push(tp_res)
@@ -287,10 +284,12 @@ class CodeGenerator:
 
     def add_main(self):
         self.quadruples.append(['goto', None, None, None])
+        self.jumps.push(self.counter-1)
         self.counter += 1
 
     def add_main_dir(self, val):
-        self.quadruples[0][3] = val
+        pos = self.jumps.pop()
+        self.fill(pos, val)
 
     def end_prog(self):
         self.quadruples.append(['END', None, None, None])

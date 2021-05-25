@@ -1,7 +1,10 @@
 private class classname : parentClass {
-    int a = 23;
-    loop(a < 2){
-        a = a + 1;
+    main(){
+        int a = 0;
+        loop(a < 200){
+            a = a + 1;
+        }
+        int b = a + 1;
+        print(b + "");
     }
-    int b = a + 1;
 }

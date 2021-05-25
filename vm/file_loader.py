@@ -1,5 +1,4 @@
 import re
-from typing import Tuple
 
 
 class FileLoader:
