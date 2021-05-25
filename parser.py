@@ -93,7 +93,7 @@ def p_class_5(p):
 
 def p_main(p):
     '''main : mainAux OPEN_PARENTHESIS CLOSED_PARENTHESIS block'''
-    func_dir.delete_var_table(p[1])
+    var_tables['main'] = func_dir.delete_var_table(p[1])
     code_gen.reset_t_counter()
 
 
