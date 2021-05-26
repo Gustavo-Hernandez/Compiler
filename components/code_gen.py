@@ -11,6 +11,7 @@ class CodeGenerator:
         self.jumps = Stack()
         self.quadruples = []
         self.avail = []
+        self.main_quad = 0
         self.par_counter = 0
         self.t_counter = 0
         self.counter = 1
@@ -170,7 +171,7 @@ class CodeGenerator:
     # Adding a plus or minus
     def addOperator_1(self, value):
         op_top = self.operators.top()
-        if op_top not in ['=', None, '(', '>', '==', '!=', '<', 'and', 'or', 'ARR']:
+        if op_top not in ['=', None, '(', '>', '==', '!=', '<', 'and', 'or', 'ARR', 'FUNC']:
             self.solve()
             self.addOperator_1(value)
         else:
@@ -210,6 +211,10 @@ class CodeGenerator:
 
     def arr_solve(self):
         while self.operators.top() != 'ARR':
+            self.solve()
+
+    def param_solve(self):
+        while self.operators.top() != 'FUNC':
             self.solve()
 
     def factor_solve(self):
@@ -284,12 +289,11 @@ class CodeGenerator:
 
     def add_main(self):
         self.quadruples.append(['goto', None, None, None])
-        self.jumps.push(self.counter-1)
+        self.main_quad = self.counter - 1
         self.counter += 1
 
     def add_main_dir(self, val):
-        pos = self.jumps.pop()
-        self.fill(pos, val)
+        self.fill(self.main_quad, val)
 
     def end_prog(self):
         self.quadruples.append(['END', None, None, None])
@@ -297,6 +301,7 @@ class CodeGenerator:
     def generate_era(self, func):
         self.quadruples.append(['ERA', func, None, None])
         self.counter += 1
+        self.operators.push('FUNC')
 
     def param(self, tp, address):
         exp = self.types.pop()
@@ -359,7 +364,7 @@ class CodeGenerator:
         self.quadruples.append(['+', operand, va, key])
 
         # Added pointer key
-        self.operands.push(key)
+        self.operands.push("(" + str(key) + ")")
         self.types.push(tp)
         self.counter += 1
         self.dim_counter = 0
@@ -398,8 +403,7 @@ class CodeGenerator:
             raise IndexError(
                 "Array dimensions exceed declared dimensions of ", d)
 
-        self.quadruples.append(
-            ['VER', operand, cypher, dims[self.dim_counter][0] - 1])
+        self.quadruples.append(['VER', operand, cypher, dims[self.dim_counter][0]])
         self.counter += 1
 
         if self.dim_counter == 0:

@@ -7,6 +7,11 @@ class Stack:
             return None
         return self.stack[len(self.stack)-1]
 
+    def second(self):
+        if len(self.stack) < 2:
+            return None
+        return self.stack[len(self.stack)-2]
+
     def pop(self):
         if len(self.stack) < 1:
             return None

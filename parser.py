@@ -24,6 +24,7 @@ current_table = None
 called_function = None
 current_function = None
 current_arr = None
+current_arr_id = ''
 code_gen = CodeGenerator()
 err = False
 
@@ -271,6 +272,7 @@ def p_func_call(p):
         mem_dir = var_table.table[current_function]['virtual_address']
         p[0] = code_gen.call_return(mem_dir, ret_type)
         code_gen.addOperand(p[0])
+    code_gen.operators.pop()
 
 
 def p_func_call_aux(p):
@@ -297,7 +299,7 @@ def p_func_call_2(p):
 
 def p_func_call_aux_2(p):
     '''func_call_aux_2 : expression'''
-    code_gen.final_solve()
+    code_gen.param_solve()
     tp = list(func_dir.directory[current_function]['params'].values())
     if len(tp) > code_gen.par_counter:
         code_gen.param(tp[code_gen.par_counter]['type'],
@@ -755,6 +757,7 @@ def p_arr_exp_loop(p):
 
 def p_arr_aux(p):
     '''arr_aux : arr_exp'''
+    p[0] = p[1]
     if current_arr:
         code_gen.set_dim(current_arr['dims'], cte_table.insert_cte(0, 'int'))
     else:
@@ -780,8 +783,8 @@ def p_arr_expAux(p):
 
 def p_id_arr_var(p):
     '''id_arr_var : id_arr_varAuxID arr_exp_loop'''
-    global current_arr
-    if current_arr:
+    global current_arr, current_arr_id
+    if current_arr and p[1] == current_arr_id:
         cte_mem = cte_table.insert_cte(current_arr['virtual_address'], 'int')
         code_gen.final_arr(cte_mem, current_arr['type'], current_arr['dims'])
         current_arr = None
@@ -791,17 +794,19 @@ def p_id_arr_var(p):
 def p_id_arrID(p):
     '''id_arr_varAuxID  : ID'''
     p[0] = p[1]
-    global current_arr
+    global current_arr, current_arr_id
 
     if p[1] not in current_table.table and current_table != var_table:
         if var_table.get_is_array(p[1]):
             current_arr = var_table.table[p[1]]
+            current_arr_id = p[1]
         else:
             code_gen.types.push(var_table.get_type(p[1]))
             code_gen.addOperand(var_table.table[p[1]]['virtual_address'])
     else:
         if current_table.get_is_array(p[1]):
             current_arr = current_table.table[p[1]]
+            current_arr_id = p[1]
         else:
             code_gen.types.push(current_table.get_type(p[1]))
             code_gen.addOperand(current_table.table[p[1]]['virtual_address'])

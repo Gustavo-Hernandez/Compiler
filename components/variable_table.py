@@ -25,7 +25,7 @@ class VariableTable:
                     for dim in d:
                         m = m//dim
                         m_dir = cte_table.insert_cte(m, 'int')
-                        dim_dir = cte_table.insert_cte(dim, 'int')
+                        dim_dir = cte_table.insert_cte(dim-1, 'int')
                         dims.append([dim_dir, m_dir])
 
                     virtualAddress = self.requestArrayAddress(
@@ -74,14 +74,14 @@ class VariableTable:
             raise KeyError("Variable " + val + " is not defined")
 
     def requestArrayAddress(self, scope, type_var, size):
-        if(scope == 'global'):
+        if scope == 'global':
             virtual_address = MemoryManager().request_address_block(scope, type_var, size)
         else:
             virtual_address = MemoryManager().request_address_block('local', type_var, size)
         return virtual_address
 
     def requestAddress(self, scope, type_var):
-        if(scope == 'global'):
+        if scope == 'global':
             virtual_address = MemoryManager().request_address(scope, type_var)
         else:
             virtual_address = MemoryManager().request_address('local', type_var)

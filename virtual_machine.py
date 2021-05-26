@@ -11,6 +11,7 @@ funcs = None
 memories = None
 call_stack = Stack()
 modules_addresses = None
+idle_memory = None
 memory_stack = Stack()
 quad_pointer_stack = Stack()
 
@@ -27,7 +28,7 @@ def get_value(address):
     else:
         raise RuntimeError("Invalid Address: " + str(address))
     if value == None:
-        print("[ERROR] Uninitialized value at " + str(address))
+        print("[ERROR] Uninitialized value at " + str(address) + " at quad ", quad_pointer)
         sys.exit()
     return value
 
@@ -40,13 +41,27 @@ def store_value(value, address):
     elif address in current_memory:
         current_memory[address] = value
     else:
-        raise RuntimeError("Invalid Address: " + str(address))
+        raise RuntimeError("Invalid Address: " + str(address) + " at quad ", quad_pointer)
 
 
-def process_quad(quad):
-    global quad_pointer, modules_addresses, call_stack
+def store_param(value, address):
+    global idle_memory
+    if address in idle_memory:
+        idle_memory[address] = value
+    else:
+        raise RuntimeError("Invalid Address: " + str(address) + " at quad ", quad_pointer)
+
+
+def process_quad(param_quad):
+    global quad_pointer, modules_addresses, call_stack, idle_memory
+    quad = param_quad.copy()
+
+    for i in range(1, 4):
+        if type(quad[i]) == str and "(" in quad[i]:
+            quad[i] = get_value(int(quad[i].replace("(", "").replace(")", "")))
+
     if quad[0] == "goto":
-        quad_pointer = quad[3]-1
+        quad_pointer = quad[3] - 1
     elif quad[0] == "+":
         izq = get_value(quad[1])
         der = get_value(quad[2])
@@ -114,21 +129,30 @@ def process_quad(quad):
         if var:
             quad_pointer += 1
         else:
-            quad_pointer = quad[3]-1
+            quad_pointer = quad[3] - 1
     elif quad[0] == "ERA":
-        localmemory = MemoryManager().request_localmemory(memories[quad[1]])
-        memory_stack.push(localmemory)
+        idle_memory = MemoryManager().request_localmemory(memories[quad[1]])
         call_stack.push(quad[1])
         quad_pointer += 1
     elif quad[0] == "PARAM":
         value = get_value(quad[1])
-        store_value(value, quad[3])
+        store_param(value, quad[3])
         quad_pointer += 1
     elif quad[0] == "GOSUB":
+        memory_stack.push(idle_memory)
+        idle_memory = None
         quad_pointer_stack.push(quad_pointer)
         quad_pointer = funcs[quad[3]]['position'] - 1
     elif quad[0] == "ENDFUNC":
         quad_pointer = quad_pointer_stack.pop()
+        quad_pointer += 1
+    elif quad[0] == "VER":
+        index = get_value(quad[1])
+        lim_inf = get_value(quad[2])
+        lim_sup = get_value(quad[3])
+        if index < lim_inf or index > lim_sup:
+            print("[ERROR] Index out of range ", index, lim_inf, lim_sup)
+            sys.exit()
         quad_pointer += 1
     elif quad[0] == "RETURN":
         value = get_value(quad[3])
