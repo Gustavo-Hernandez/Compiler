@@ -9,6 +9,8 @@ const_table = None
 global_memory = None
 funcs = None
 memories = None
+call_stack = Stack()
+modules_addresses = None
 memory_stack = Stack()
 quad_pointer_stack = Stack()
 
@@ -23,7 +25,7 @@ def get_value(address):
     elif address in current_memory:
         value = current_memory[address]
     else:
-        raise RuntimeError("Invalid Address: " + address)
+        raise RuntimeError("Invalid Address: " + str(address))
     if value == None:
         print("[ERROR] Uninitialized value at " + str(address))
         sys.exit()
@@ -38,11 +40,11 @@ def store_value(value, address):
     elif address in current_memory:
         current_memory[address] = value
     else:
-        raise RuntimeError("Invalid Address: " + address)
+        raise RuntimeError("Invalid Address: " + str(address))
 
 
 def process_quad(quad):
-    global quad_pointer, functions, memory
+    global quad_pointer, modules_addresses, call_stack
     if quad[0] == "goto":
         quad_pointer = quad[3]-1
     elif quad[0] == "+":
@@ -116,10 +118,7 @@ def process_quad(quad):
     elif quad[0] == "ERA":
         localmemory = MemoryManager().request_localmemory(memories[quad[1]])
         memory_stack.push(localmemory)
-        quad_pointer += 1
-    elif quad[0] == "ERA":
-        localmemory = MemoryManager().request_localmemory(memories[quad[1]])
-        memory_stack.push(localmemory)
+        call_stack.push(quad[1])
         quad_pointer += 1
     elif quad[0] == "PARAM":
         value = get_value(quad[1])
@@ -131,18 +130,27 @@ def process_quad(quad):
     elif quad[0] == "ENDFUNC":
         quad_pointer = quad_pointer_stack.pop()
         quad_pointer += 1
+    elif quad[0] == "RETURN":
+        value = get_value(quad[3])
+        fn_id = call_stack.pop()
+        address = modules_addresses[fn_id]
+        store_value(value, address)
+        memory_stack.pop()
+        quad_pointer += 1
     else:
         raise RuntimeError("Unimplemented Action Code: " + quad[0])
 
 
 def main():
-    global const_table, global_memory, memory_stack, funcs, memories
+    global const_table, global_memory, memory_stack, funcs, memories, modules_addresses
 
     file_loader = FileLoader("./output/out.obj")
-    (quadruples, functions, memory, constants) = file_loader.get_data()
+    (quadruples, functions, ret_modules_address,
+     memory, constants) = file_loader.get_data()
 
     funcs = functions
     memories = memory
+    modules_addresses = ret_modules_address
 
     const_table = constants
     global_memory = MemoryManager().request_globalmemory(memory['program'])

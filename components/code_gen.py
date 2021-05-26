@@ -300,7 +300,6 @@ class CodeGenerator:
 
     def param(self, tp, address):
         exp = self.types.pop()
-
         if exp != tp:
             raise TypeError(
                 "Mismatch on parameter types: expected: " + tp + ", received: " + exp)

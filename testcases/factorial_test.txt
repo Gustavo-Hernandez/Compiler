@@ -1,0 +1,19 @@
+private class classname : parentClass {
+
+    func int factorial(int a){
+        int res = 0;
+        if(a == 1){
+            a = 2;
+        }else{
+            res = a * factorial(a);
+        }
+        return res;
+    }
+
+    main(){
+        int a = 3;
+        int x = factorial(4);
+        print(x+"");
+    }
+}
+

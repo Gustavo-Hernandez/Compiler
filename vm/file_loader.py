@@ -7,12 +7,14 @@ class FileLoader:
         self.__int_regex = re.compile(r'^[0-9]+$')
         self.__quads = []
         self.__functions = {}
+        self.__ret_module_address = {}
         self.__memory = {}
         self.__const = {}
         self.__load_obj_file(filepath)
 
     def __load_obj_file(self, filepath):
-        sections = ["quads", "signatures", "memory", "const"]
+        sections = ["quads", "signatures",
+                    "ret_modules_address", "memory", "const"]
         section_counter = 0
         r = open(filepath, 'r')
         for line in r:
@@ -25,6 +27,8 @@ class FileLoader:
             elif(sections[section_counter] == "signatures"):
                 self.__functions[line[0]] = {
                     'type': line[1], 'position': int(line[2]), 'params': line[3:len(line)-1]}
+            elif (sections[section_counter] == "ret_modules_address"):
+                self.__ret_module_address[line[0]] = int(line[1])
             elif(sections[section_counter] == "memory"):
                 self.__memory[line[0]] = self.__process_size(line)
             elif(sections[section_counter] == "const"):
@@ -55,4 +59,4 @@ class FileLoader:
         return list(map(lambda x: int(x), (line[1:len(line)-1])))
 
     def get_data(self):
-        return (self.__quads, self.__functions, self.__memory, self.__const)
+        return (self.__quads, self.__functions, self.__ret_module_address, self.__memory, self.__const)

@@ -1,11 +1,5 @@
 private class classname : parentClass {
-    int a, b;
-    a = 4 + 2;
-    func void module1(int j, bool k){
-       int a,b,c;
-       a = j+1;
-    }
-
+    
     func int module2(){
         return 4;
     }

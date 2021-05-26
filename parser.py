@@ -859,6 +859,15 @@ def export_functions_signature():
     return signatures_export
 
 
+def export_ret_functions_address():
+    addresses = ""
+    for func in func_dir.directory:
+        if func in var_table.table:
+            addresses += func + " " + \
+                str(var_table.table[func]['virtual_address']) + "\n"
+    return addresses
+
+
 def export_constants():
     constants = ""
     for cte in cte_table.table:
@@ -872,7 +881,8 @@ def generateObj():
     if not os.path.isdir(dir_path):
         os.makedirs(dir_path)
     output = export_quads() + "\n" + export_functions_signature() + \
-        "\n" + export_functions_size() + "\n" + export_constants()
+        "\n" + export_ret_functions_address() + "\n" + export_functions_size() + \
+        "\n" + export_constants()
     filewriter = open(dir_path + "/out.obj", 'w')
     filewriter.write(output)
 
