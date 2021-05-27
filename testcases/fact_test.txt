@@ -1,0 +1,32 @@
+private class classname : parentClass {
+    func int factorialLinear(int a){
+        int res = 1;
+
+        int i = 1;
+
+        loop(i < a + 1){
+            res = res * i;
+            i = i + 1;
+        }
+
+        return res;
+    }
+
+    func int factorial(int a){
+        int res = 0;
+        if(a == 0){
+            res = 1;
+        }else{
+            res = a * factorial(a - 1);
+        }
+        return res;
+    }
+
+    main(){
+        int a = 3;
+        int x = factorial(5);
+        int y = factorialLinear(4);
+        print("FactorialRecursive" + x);
+        print("FactorialLinear" + y);
+    }
+}

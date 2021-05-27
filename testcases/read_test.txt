@@ -1,0 +1,7 @@
+private class classname : parentClass {
+    main(){
+        int arr[2];
+        read(arr[1]);
+        print(arr[1]+"_is_the_input");
+    }
+}

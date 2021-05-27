@@ -126,7 +126,8 @@ def p_statement(p):
                     | condition
                     | printing
                     | loop
-                    | void_call'''
+                    | void_call
+                    | reading'''
 
 
 def p_statementAux(p):
@@ -452,6 +453,16 @@ def p_printingAux(p):
 
 # ---- END PRINTING DEFINITION ---------
 
+# ---- BEGIN READING DEFINITION ---------
+
+
+def p_reading(p):
+    '''reading : READ OPEN_PARENTHESIS id_arr_var CLOSED_PARENTHESIS SEMICOLON'''
+    code_gen.reading()
+
+
+# ---- END READING DEFINITION ---------
+
 # ---- BEGIN CONDITION DEFINITION ---------
 
 
@@ -700,7 +711,6 @@ def p_var_cteAuxBOOL(p):
 def p_type_atomic(p):
     '''type_atomic  : INT
                     | FLOAT
-                    | DOUBLE
                     | STRING
                     | BOOL'''
     p[0] = p[1]

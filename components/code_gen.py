@@ -26,7 +26,8 @@ class CodeGenerator:
                     '/': 'float',
                     '>': 'bool',
                     '<': 'bool',
-                    '==': 'bool'
+                    '==': 'bool',
+                    '!=': 'bool'
                 },
                 'float': {
                     '+': 'float',
@@ -35,16 +36,8 @@ class CodeGenerator:
                     '/': 'float',
                     '>': 'bool',
                     '<': 'bool',
-                    '==': 'bool'
-                },
-                'double': {
-                    '+': 'double',
-                    '-': 'double',
-                    '*': 'double',
-                    '/': 'double',
-                    '>': 'bool',
-                    '<': 'bool',
-                    '==': 'bool'
+                    '==': 'bool',
+                    '!=': 'bool'
                 },
                 'string': {
                     '+': 'string'
@@ -58,7 +51,8 @@ class CodeGenerator:
                     '/': 'float',
                     '>': 'bool',
                     '<': 'bool',
-                    '==': 'bool'
+                    '==': 'bool',
+                    '!=': 'bool'
                 },
                 'float': {
                     '+': 'float',
@@ -67,48 +61,8 @@ class CodeGenerator:
                     '/': 'float',
                     '>': 'bool',
                     '<': 'bool',
-                    '==': 'bool'
-                },
-                'double': {
-                    '+': 'double',
-                    '-': 'double',
-                    '*': 'double',
-                    '/': 'double',
-                    '>': 'bool',
-                    '<': 'bool',
-                    '==': 'bool'
-                },
-                'string': {
-                    '+': 'string'
-                }
-            },
-            'double': {
-                'int': {
-                    '+': 'double',
-                    '-': 'double',
-                    '*': 'double',
-                    '/': 'double',
-                    '>': 'bool',
-                    '<': 'bool',
-                    '==': 'bool'
-                },
-                'float': {
-                    '+': 'double',
-                    '-': 'double',
-                    '*': 'double',
-                    '/': 'double',
-                    '>': 'bool',
-                    '<': 'bool',
-                    '==': 'bool'
-                },
-                'double': {
-                    '+': 'double',
-                    '-': 'double',
-                    '*': 'double',
-                    '/': 'double',
-                    '>': 'bool',
-                    '<': 'bool',
-                    '==': 'bool'
+                    '==': 'bool',
+                    '!=': 'bool'
                 },
                 'string': {
                     '+': 'string'
@@ -123,6 +77,7 @@ class CodeGenerator:
                     '>': 'bool',
                     '<': 'bool',
                     '==': 'bool',
+                    '!=': 'bool',
                     'and': 'bool',
                     'or': 'bool'
                 }
@@ -272,7 +227,6 @@ class CodeGenerator:
         end = self.jumps.pop()
         return_pos = self.jumps.pop()
         self.quadruples.append(['goto', None, None, return_pos])
-        self.jumps.push(self.counter - 1)  # Adding current line
         self.counter += 1
         self.fill(end, self.counter)
 
@@ -421,3 +375,9 @@ class CodeGenerator:
                 self.set_dim_sum(operand)
 
         self.dim_counter += 1
+
+    def reading(self):
+        val = self.operands.pop()
+        tp = self.types.pop()
+
+        self.quadruples.append(['READ', tp, None, val])

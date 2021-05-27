@@ -114,15 +114,20 @@ def process_quad(param_quad):
         der = get_value(quad[2])
         store_value(izq == der, quad[3])
         quad_pointer += 1
-    elif quad[0] == "<=":
+    elif quad[0] == "!=":
         izq = get_value(quad[1])
         der = get_value(quad[2])
-        store_value(izq <= der, quad[3])
+        store_value(izq != der, quad[3])
         quad_pointer += 1
-    elif quad[0] == ">=":
+    elif quad[0] == "and":
         izq = get_value(quad[1])
         der = get_value(quad[2])
-        store_value(izq >= der, quad[3])
+        store_value(izq and der, quad[3])
+        quad_pointer += 1
+    elif quad[0] == "or":
+        izq = get_value(quad[1])
+        der = get_value(quad[2])
+        store_value(izq or der, quad[3])
         quad_pointer += 1
     elif quad[0] == "gotoF":
         var = get_value(quad[1])
@@ -160,6 +165,28 @@ def process_quad(param_quad):
         address = modules_addresses[fn_id]
         store_value(value, address)
         memory_stack.pop()
+        quad_pointer += 1
+    elif quad[0] == "READ":
+        address = quad[3]
+        value = input()
+
+        try:
+            if quad[1] == 'string':
+                value = str(value)
+            elif quad[1] == 'int':
+                value = int(value)
+            elif quad[1] == 'float':
+                value = float(value)
+            elif quad[1] == 'bool':
+                value = bool(value)
+            else:
+                print("[ERROR] Variable type not recognized on READ")
+                sys.exit()
+        except ValueError:
+            print("[ERROR] Read input type does not match var type " + quad[1])
+            sys.exit()
+
+        store_value(value, address)
         quad_pointer += 1
     else:
         raise RuntimeError("Unimplemented Action Code: " + quad[0])
