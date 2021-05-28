@@ -65,7 +65,9 @@ def process_quad(param_quad):
     elif quad[0] == "+":
         izq = get_value(quad[1])
         der = get_value(quad[2])
-        if type(izq) == str:
+        if type(der) == str and type(izq) == str:
+            result = izq.strip('"') + der.strip('"')
+        elif type(izq) == str:
             result = izq.strip('"') + str(der)
         elif type(der) == str:
             result = str(izq) + der.strip('"')

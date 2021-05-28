@@ -31,6 +31,33 @@ err = False
 
 # Grammars Definition
 
+# ---- BEGIN PROGRAM DEFINITION --------
+
+def p_program(p):
+    '''program : programAux OPEN_BRACKET program_1 program_2 main CLOSED_BRACKET'''
+    code_gen.end_prog()
+
+
+def p_programAux(p):
+    '''programAux : PROGRAM ID'''
+    global var_table, func_dir, current_table
+    func_dir = FunctionDirectory()
+    func_dir.add_function(p[2], 'program', 0)
+    var_table = func_dir.get_var_table()
+    current_table = var_table
+
+
+def p_program_1(p):
+    '''program_1    : statementAux program_1
+                    | empty'''
+
+
+def p_program_2(p):
+    '''program_2    : class program_2
+                    | empty'''
+
+# ---- END PROGRAM DEFINITION --------
+
 # ---- BEGIN CLASS DEFINITION ---------
 
 
@@ -40,16 +67,11 @@ def p_class(p):
 
 def p_classAux(p):
     '''classAux    : visibility CLASS ID'''
-    global var_table, func_dir, current_table
-    func_dir = FunctionDirectory()
-    func_dir.add_function('np', 'program', 0)
-    var_table = func_dir.get_var_table()
-    current_table = var_table
+
 
 
 def p_class_1(p):
-    '''class_1  : class_1Aux class_4 class_5 CLOSED_BRACKET'''
-    code_gen.end_prog()
+    '''class_1  : class_1Aux class_4 CLOSED_BRACKET'''
     val = func_dir.directory.get('main', None)
     if val:
         code_gen.add_main_dir(val['position'])
@@ -81,11 +103,6 @@ def p_class_4(p):
                 | empty'''
 
 
-def p_class_5(p):
-    '''class_5  : main
-                | empty'''
-
-
 # ---- END CLASS DEFINITION ---------
 
 # ---- BEGIN MAIN DEFINITION ---------
@@ -112,8 +129,7 @@ def p_mainAux(p):
 
 def p_visibility(p):
     '''visibility   : PUBLIC
-                    | PRIVATE
-                    | PROTECTED'''
+                    | PRIVATE'''
 
 
 # ---- END VISIBILITY DEFINITION ---------
@@ -340,12 +356,12 @@ def p_assignation_1(p):
 
 
 def p_declaration(p):
-    '''declaration :  declaration_1 SEMICOLON'''
+    '''declaration : type_atomic declaration_1 SEMICOLON'''
     current_table.register(code_gen.current_scope, cte_table)
 
 
 def p_declaration_1(p):
-    '''declaration_1    : type declaration_1Aux declaration_2
+    '''declaration_1    : declaration_1Aux declaration_2
                         | declaration_1Aux2 declaration_3'''
 
 
@@ -369,11 +385,13 @@ def p_declaration_1Aux(p):
 
 
 def p_declaration_1Aux2(p):
-    '''declaration_1Aux2    : type declaration_1Aux EQUALS'''
-    code_gen.operators.push(p[3])
-    code_gen.types.push(p[1])
+    '''declaration_1Aux2    : ID EQUALS'''
+    current_table.store_id(p[1])
+    current_table.set_array(False)
+    code_gen.operators.push(p[2])
     current_table.register(code_gen.current_scope, cte_table)
-    code_gen.addOperand(current_table.table[p[2]]['virtual_address'])
+    code_gen.types.push(current_table.table[p[1]]['type'])
+    code_gen.addOperand(current_table.table[p[1]]['virtual_address'])
 
 
 def p_declaration_2(p):
@@ -387,6 +405,23 @@ def p_declaration_3(p):
 
 
 # ---- END DECLARATION DEFINITION ---------
+
+# ---- BEGIN OBJECT_DECLARATION DEFINITION -------
+
+
+def p_object_declaration(p):
+    '''object_declaration : ID object_declaration_1 SEMICOLON'''
+    if p[1] not in ['int', 'float', 'bool', 'string']:
+        # TO-DO Validate existing Class in Class-Dir
+        pass
+
+
+def p_object_declaration_1(p):
+    '''object_declaration_1 : ID COMMA object_declaration_1
+                            | empty'''
+
+
+# ---- END OBJECT_DECLARATION DEFINITION -------
 
 # ---- BEGIN ARRAY_DEC DEFINITION ---------
 
@@ -714,6 +749,7 @@ def p_type_atomic(p):
                     | STRING
                     | BOOL'''
     p[0] = p[1]
+    current_table.set_type(p[1])
 
 
 # ---- END TYPE_ATOMIC DEFINITION ---------
@@ -725,7 +761,7 @@ def p_type(p):
     '''type : type_atomic
             | ID'''
     p[0] = p[1]
-    current_table.set_type(p[1])
+
 
 
 # ---- END TYPE DEFINITION ---------

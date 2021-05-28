@@ -32,6 +32,9 @@ class FileLoader:
             elif(sections[section_counter] == "memory"):
                 self.__memory[line[0]] = self.__process_size(line)
             elif(sections[section_counter] == "const"):
+                if(len(line) > 2):
+                    for i in range(2, len(line)):
+                        line[1] += " " + line[i]
                 self.__const[int(line[0])] = self.__process_const(line[1])
 
     def __format_quad(self, list):
@@ -52,7 +55,7 @@ class FileLoader:
         elif const == "false":
             n_const = False
         else:
-            n_const = const
+            n_const = const.strip('"')
         return n_const
 
     def __process_size(self, line):
