@@ -27,15 +27,17 @@ current_arr = None
 current_arr_id = ''
 code_gen = CodeGenerator()
 err = False
-
+class_dir = {}
 
 # Grammars Definition
 
 # ---- BEGIN PROGRAM DEFINITION --------
 
+
 def p_program(p):
     '''program : programAux OPEN_BRACKET program_1 program_2 main CLOSED_BRACKET'''
     code_gen.end_prog()
+    print(class_dir)
 
 
 def p_programAux(p):
@@ -63,11 +65,19 @@ def p_program_2(p):
 
 def p_class(p):
     '''class    : classAux class_1'''
+    #p[1] is visibility and id, p[2] is extension
+    if p[2] != None and p[2] not in class_dir:
+        raise AssertionError(
+            "Class " + p[1][0] + " extension '" + p[2] + "' is not declared.")
+    else:
+        class_dir[p[1][0]] = {"number": len(
+            class_dir), "visibility": p[1][1], "extension": p[2]}
 
 
 def p_classAux(p):
     '''classAux    : visibility CLASS ID'''
-
+    # Pushing visibility and id value upwards
+    p[0] = [p[3], p[1]]
 
 
 def p_class_1(p):
@@ -77,17 +87,26 @@ def p_class_1(p):
         code_gen.add_main_dir(val['position'])
     else:
         code_gen.add_main_dir(code_gen.counter)
+    # Pushing extension value upwards
+    p[0] = p[1]
 
 
 def p_class_1Aux(p):
     '''class_1Aux  : class_2 OPEN_BRACKET class_3'''
     var_tables['global'] = func_dir.store_global_vars('program')
     code_gen.add_main()
+    # Pushing extension value upwards
+    p[0] = p[1]
 
 
 def p_class_2(p):
     '''class_2  : extension
                 | empty'''
+    # Pushing extension value upwards
+    if not p[1]:
+        p[0] = None
+    else:
+        p[0] = p[1]
 
 
 def p_class_3(p):
@@ -130,7 +149,7 @@ def p_mainAux(p):
 def p_visibility(p):
     '''visibility   : PUBLIC
                     | PRIVATE'''
-
+    p[0] = p[1]
 
 # ---- END VISIBILITY DEFINITION ---------
 
@@ -262,6 +281,7 @@ def p_params_2(p):
 
 def p_extension(p):
     '''extension : COLON ID'''
+    p[0] = p[2]
 
 
 # ---- END EXTENSION DEFINITION ---------
@@ -356,7 +376,8 @@ def p_assignation_1(p):
 
 
 def p_declaration(p):
-    '''declaration : type_atomic declaration_1 SEMICOLON'''
+    '''declaration : type_atomic declaration_1 SEMICOLON
+                    | object_declaration'''
     current_table.register(code_gen.current_scope, cte_table)
 
 
@@ -757,11 +778,10 @@ def p_type_atomic(p):
 # ---- BEGIN TYPE DEFINITION ---------
 
 
-def p_type(p):
-    '''type : type_atomic
-            | ID'''
-    p[0] = p[1]
-
+# def p_type(p):
+#     '''type : type_atomic
+#             | ID'''
+#     p[0] = p[1]
 
 
 # ---- END TYPE DEFINITION ---------

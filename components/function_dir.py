@@ -65,9 +65,10 @@ class FunctionDirectory:
     # Returns only the data needed by VM.
     def clean_export(self):
         clean_table = {}
-        for var in self.var_table.table:
-            clean_var = {}
-            clean_var['type'] = self.var_table.table[var]['type']
-            clean_var['virtual_address'] = self.var_table.table[var]['virtual_address']
-            clean_table[var] = clean_var
-        return clean_table
+        if self.var_table != None:
+            for var in self.var_table.table:
+                clean_var = {}
+                clean_var['type'] = self.var_table.table[var]['type']
+                clean_var['virtual_address'] = self.var_table.table[var]['virtual_address']
+                clean_table[var] = clean_var
+            return clean_table

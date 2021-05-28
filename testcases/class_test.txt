@@ -1,3 +1,12 @@
-private class classname : parentClass {
+program ClassTest {
+    public class Animal {
 
+    }
+
+    public class Human : Animal{
+    
+    }
+    main(){
+        
+    }
 }
