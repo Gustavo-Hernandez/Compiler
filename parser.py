@@ -19,7 +19,7 @@ from components.code_gen import CodeGenerator
 var_tables = {}
 cte_table = VariableTable()
 var_table = None
-func_dir = None
+current_func_dir = None
 current_table = None
 called_function = None
 current_function = None
@@ -28,7 +28,7 @@ current_arr_id = ''
 code_gen = CodeGenerator()
 err = False
 class_dir = {}
-
+fns_dir = {}
 # Grammars Definition
 
 # ---- BEGIN PROGRAM DEFINITION --------
@@ -38,14 +38,17 @@ def p_program(p):
     '''program : programAux OPEN_BRACKET program_1 program_2 main CLOSED_BRACKET'''
     code_gen.end_prog()
     print(class_dir)
+    print("------------------")
+    fns_dir['program'] = fns_dir['program'].directory
 
 
 def p_programAux(p):
     '''programAux : PROGRAM ID'''
-    global var_table, func_dir, current_table
-    func_dir = FunctionDirectory()
-    func_dir.add_function(p[2], 'program', 0)
-    var_table = func_dir.get_var_table()
+    global var_table, current_func_dir, current_table
+    current_func_dir = FunctionDirectory()
+    current_func_dir.add_function(p[2], 'program', 0)
+    fns_dir['program'] = current_func_dir
+    var_table = fns_dir['program'].get_var_table()
     current_table = var_table
 
 
@@ -57,7 +60,9 @@ def p_program_1(p):
 def p_program_2(p):
     '''program_2    : class program_2
                     | empty'''
-
+    if not p[1]:
+        global current_func_dir
+        current_func_dir = fns_dir['program']
 # ---- END PROGRAM DEFINITION --------
 
 # ---- BEGIN CLASS DEFINITION ---------
@@ -72,17 +77,23 @@ def p_class(p):
     else:
         class_dir[p[1][0]] = {"number": len(
             class_dir), "visibility": p[1][1], "extension": p[2]}
+    p[0] = p[1]
+    fns_dir[p[1][0]] = current_func_dir.directory
 
 
 def p_classAux(p):
     '''classAux    : visibility CLASS ID'''
     # Pushing visibility and id value upwards
     p[0] = [p[3], p[1]]
+    global current_func_dir
+    current_func_dir = FunctionDirectory()
+    current_func_dir.global_vartable = var_table
+    print(p[3])
 
 
 def p_class_1(p):
     '''class_1  : class_1Aux class_4 CLOSED_BRACKET'''
-    val = func_dir.directory.get('main', None)
+    val = fns_dir['program'].directory.get('main', None)
     if val:
         code_gen.add_main_dir(val['position'])
     else:
@@ -93,7 +104,7 @@ def p_class_1(p):
 
 def p_class_1Aux(p):
     '''class_1Aux  : class_2 OPEN_BRACKET class_3'''
-    var_tables['global'] = func_dir.store_global_vars('program')
+    var_tables['global'] = fns_dir['program'].store_global_vars('program')
     code_gen.add_main()
     # Pushing extension value upwards
     p[0] = p[1]
@@ -129,15 +140,15 @@ def p_class_4(p):
 
 def p_main(p):
     '''main : mainAux OPEN_PARENTHESIS CLOSED_PARENTHESIS block'''
-    var_tables['main'] = func_dir.delete_var_table(p[1])
+    var_tables['main'] = current_func_dir.delete_var_table(p[1])
     code_gen.reset_t_counter()
 
 
 def p_mainAux(p):
     '''mainAux : MAIN'''
-    func_dir.add_function('void', p[1], code_gen.counter)
+    current_func_dir.add_function('void', p[1], code_gen.counter)
     global current_table
-    current_table = func_dir.get_var_table()
+    current_table = current_func_dir.get_var_table()
     p[0] = p[1]
 
 
@@ -199,7 +210,7 @@ def p_module_1(p):
     '''module_1 : module_ret
                 | module_void'''
     # Release Memory and Store clean vartable
-    var_tables[p[1]] = func_dir.delete_var_table(p[1])
+    var_tables[p[1]] = current_func_dir.delete_var_table(p[1])
     # Reset temporal Counters
     code_gen.reset_t_counter()
 
@@ -216,9 +227,10 @@ def p_module_void(p):
 def p_module_voidAux(p):
     '''module_voidAux  : VOID ID params'''
     p[0] = p[2]
-    func_dir.add_function(p[1], p[2], code_gen.counter)
+    current_func_dir.add_function(p[1], p[2], code_gen.counter)
+    print("added: ", p[2])
     global current_table
-    current_table = func_dir.get_var_table()
+    current_table = current_func_dir.get_var_table()
 
 
 # ---- END MODULE_VOID DEFINITION ---------
@@ -236,13 +248,14 @@ def p_module_ret(p):
 def p_module_retAux(p):
     '''module_retAux  : type_atomic ID params'''
     p[0] = [p[1], p[2]]
-    func_dir.add_function(p[1], p[2], code_gen.counter)
+    current_func_dir.add_function(p[1], p[2], code_gen.counter)
+    print("added: ", p[2])
     var_table.set_array(False)
     var_table.set_type(p[1])
     var_table.store_id(p[2])
     var_table.register('global', cte_table)
     global current_table
-    current_table = func_dir.get_var_table()
+    current_table = current_func_dir.get_var_table()
 
 
 def p_module_ret_1(p):
@@ -261,7 +274,7 @@ def p_params(p):
 
 def p_paramsAux(p):
     '''paramsAux : type_atomic ID'''
-    func_dir.store_param(p[1], p[2])
+    current_func_dir.store_param(p[1], p[2])
 
 
 def p_params_1(p):
@@ -301,10 +314,11 @@ def p_extension(p):
 
 def p_func_call(p):
     '''func_call : func_call_aux OPEN_PARENTHESIS func_call_1 CLOSED_PARENTHESIS'''
-    tp = len(list(func_dir.directory[current_function]['params'].values()))
+    tp = len(
+        list(current_func_dir.directory[current_function]['params'].values()))
     code_gen.validate_params(tp)
     code_gen.go_sub(current_function)
-    ret_type = func_dir.directory[current_function]['return_type']
+    ret_type = current_func_dir.directory[current_function]['return_type']
     if ret_type != "void":
         mem_dir = var_table.table[current_function]['virtual_address']
         p[0] = code_gen.call_return(mem_dir, ret_type)
@@ -315,7 +329,7 @@ def p_func_call(p):
 def p_func_call_aux(p):
     '''func_call_aux : ID'''
     p[0] = p[1]
-    if p[1] in func_dir.directory:
+    if p[1] in current_func_dir.directory:
         code_gen.generate_era(p[1])
         global current_function
         current_function = p[1]
@@ -337,7 +351,7 @@ def p_func_call_2(p):
 def p_func_call_aux_2(p):
     '''func_call_aux_2 : expression'''
     code_gen.param_solve()
-    tp = list(func_dir.directory[current_function]['params'].values())
+    tp = list(current_func_dir.directory[current_function]['params'].values())
     if len(tp) > code_gen.par_counter:
         code_gen.param(tp[code_gen.par_counter]['type'],
                        tp[code_gen.par_counter]['virtual_address'])
@@ -911,28 +925,29 @@ def export_quads():
 
 def export_functions_size():
     size_export = ""
-    for func in func_dir.directory:
+    for func in current_func_dir.directory:
         rc = " "
-        for dim_size in func_dir.directory[func]['size']:
-            rc += str(func_dir.directory[func]['size'][dim_size]) + " "
+        for dim_size in current_func_dir.directory[func]['size']:
+            rc += str(current_func_dir.directory[func]['size'][dim_size]) + " "
         size_export += func + rc + "\n"
     return size_export
 
 
 def export_functions_signature():
     signatures_export = ""
-    for func in func_dir.directory:
-        rc = " " + func_dir.directory[func]['return_type'] + \
-            " " + str(func_dir.directory[func]['position']) + " "
-        for param in func_dir.directory[func]['params']:
-            rc += str(func_dir.directory[func]['params'][param]['type']) + " "
+    for func in current_func_dir.directory:
+        rc = " " + current_func_dir.directory[func]['return_type'] + \
+            " " + str(current_func_dir.directory[func]['position']) + " "
+        for param in current_func_dir.directory[func]['params']:
+            rc += str(current_func_dir.directory[func]
+                      ['params'][param]['type']) + " "
         signatures_export += func + rc + "\n"
     return signatures_export
 
 
 def export_ret_functions_address():
     addresses = ""
-    for func in func_dir.directory:
+    for func in current_func_dir.directory:
         if func in var_table.table:
             addresses += func + " " + \
                 str(var_table.table[func]['virtual_address']) + "\n"
@@ -967,3 +982,4 @@ if len(sys.argv) > 1:
     result = parser.parse(file_content)
     if not err:
         generateObj()
+        print(fns_dir)

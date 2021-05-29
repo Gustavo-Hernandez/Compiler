@@ -1,10 +1,16 @@
 program ClassTest {
     public class Animal {
-
+        int a = 2;
+        func void sayHello(){
+            print("Hello");
+        }
     }
 
     public class Human : Animal{
-    
+        int b = 2;
+        func void sayHello(){
+            print("Hello");
+        }
     }
     main(){
         
