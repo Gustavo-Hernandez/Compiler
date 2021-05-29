@@ -88,7 +88,6 @@ def p_classAux(p):
     global current_func_dir
     current_func_dir = FunctionDirectory()
     current_func_dir.global_vartable = var_table
-    print(p[3])
 
 
 def p_class_1(p):
@@ -228,7 +227,6 @@ def p_module_voidAux(p):
     '''module_voidAux  : VOID ID params'''
     p[0] = p[2]
     current_func_dir.add_function(p[1], p[2], code_gen.counter)
-    print("added: ", p[2])
     global current_table
     current_table = current_func_dir.get_var_table()
 
@@ -249,7 +247,6 @@ def p_module_retAux(p):
     '''module_retAux  : type_atomic ID params'''
     p[0] = [p[1], p[2]]
     current_func_dir.add_function(p[1], p[2], code_gen.counter)
-    print("added: ", p[2])
     var_table.set_array(False)
     var_table.set_type(p[1])
     var_table.store_id(p[2])
