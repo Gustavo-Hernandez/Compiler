@@ -18,28 +18,36 @@ from components.code_gen import CodeGenerator
 
 var_tables = {}
 cte_table = VariableTable()
+global_var_table = VariableTable()
 var_table = None
 current_func_dir = None
 current_table = None
 called_function = None
 current_function = None
+current_function_types = None
+current_function_ret = None
 current_arr = None
 current_arr_id = ''
 code_gen = CodeGenerator()
 err = False
 class_dir = {}
 fns_dir = {}
+
+
 # Grammars Definition
 
 # ---- BEGIN PROGRAM DEFINITION --------
 
 
 def p_program(p):
-    '''program : programAux OPEN_BRACKET program_1 program_2 main CLOSED_BRACKET'''
+    '''program : programAux programAux1 program_2 main CLOSED_BRACKET'''
     code_gen.end_prog()
     print(class_dir)
     print("------------------")
     fns_dir['program'] = fns_dir['program'].directory
+    val = fns_dir['program']['main']
+    code_gen.add_main_dir(val['position'])
+    print(global_var_table.table)
 
 
 def p_programAux(p):
@@ -49,7 +57,12 @@ def p_programAux(p):
     current_func_dir.add_function(p[2], 'program', 0)
     fns_dir['program'] = current_func_dir
     var_table = fns_dir['program'].get_var_table()
-    current_table = var_table
+    current_table = global_var_table
+
+
+def p_programAux1(p):
+    '''programAux1 : OPEN_BRACKET program_1'''
+    code_gen.add_main()
 
 
 def p_program_1(p):
@@ -63,6 +76,8 @@ def p_program_2(p):
     if not p[1]:
         global current_func_dir
         current_func_dir = fns_dir['program']
+
+
 # ---- END PROGRAM DEFINITION --------
 
 # ---- BEGIN CLASS DEFINITION ---------
@@ -70,34 +85,28 @@ def p_program_2(p):
 
 def p_class(p):
     '''class    : classAux class_1'''
-    #p[1] is visibility and id, p[2] is extension
-    if p[2] != None and p[2] not in class_dir:
-        raise AssertionError(
-            "Class " + p[1][0] + " extension '" + p[2] + "' is not declared.")
-    else:
-        class_dir[p[1][0]] = {"number": len(
-            class_dir), "visibility": p[1][1], "extension": p[2]}
+    # p[1] is visibility and id, p[2] is extension
+    class_dir[p[1][0]] = {"number": len(
+        class_dir), "visibility": p[1][1], "extension": p[2],
+        'functions': current_func_dir.directory,
+        'var_table': var_table.table}
     p[0] = p[1]
-    fns_dir[p[1][0]] = current_func_dir.directory
 
 
 def p_classAux(p):
     '''classAux    : visibility CLASS ID'''
     # Pushing visibility and id value upwards
     p[0] = [p[3], p[1]]
-    global current_func_dir
+    global current_func_dir, var_table, current_table
     current_func_dir = FunctionDirectory()
-    current_func_dir.global_vartable = var_table
+    current_func_dir.global_vartable = global_var_table
+    var_table = VariableTable()
+    current_table = var_table
     print(p[3])
 
 
 def p_class_1(p):
     '''class_1  : class_1Aux class_4 CLOSED_BRACKET'''
-    val = fns_dir['program'].directory.get('main', None)
-    if val:
-        code_gen.add_main_dir(val['position'])
-    else:
-        code_gen.add_main_dir(code_gen.counter)
     # Pushing extension value upwards
     p[0] = p[1]
 
@@ -105,7 +114,6 @@ def p_class_1(p):
 def p_class_1Aux(p):
     '''class_1Aux  : class_2 OPEN_BRACKET class_3'''
     var_tables['global'] = fns_dir['program'].store_global_vars('program')
-    code_gen.add_main()
     # Pushing extension value upwards
     p[0] = p[1]
 
@@ -114,10 +122,16 @@ def p_class_2(p):
     '''class_2  : extension
                 | empty'''
     # Pushing extension value upwards
-    if not p[1]:
-        p[0] = None
-    else:
-        p[0] = p[1]
+    if p[1]:
+        global class_dir, current_func_dir
+        if p[1] not in class_dir:
+            raise KeyError("Can not extend from non existent class: " + p[1])
+        elif class_dir[p[1]]['visibility'] == 'private':
+            raise KeyError("Can not extend from private class: " + p[1])
+        else:
+            current_func_dir.directory = class_dir[p[1]]['functions'].copy()
+            var_table.table = class_dir[p[1]]['var_table'].copy()
+    p[0] = p[1]
 
 
 def p_class_3(p):
@@ -162,6 +176,7 @@ def p_visibility(p):
                     | PRIVATE'''
     p[0] = p[1]
 
+
 # ---- END VISIBILITY DEFINITION ---------
 
 # ---- BEGIN STATEMENT DEFINITION ---------
@@ -173,7 +188,8 @@ def p_statement(p):
                     | printing
                     | loop
                     | void_call
-                    | reading'''
+                    | reading
+                    | void_object_call'''
 
 
 def p_statementAux(p):
@@ -213,6 +229,7 @@ def p_module_1(p):
     var_tables[p[1]] = current_func_dir.delete_var_table(p[1])
     # Reset temporal Counters
     code_gen.reset_t_counter()
+
 
 # ---- END MODULE DEFINITION ---------
 
@@ -301,28 +318,117 @@ def p_extension(p):
 
 # ---- BEGIN CALL DEFINITIONS ----
 
-# def p_method_call(p):
-# '''method_call : ID POINT func_call'''
+def p_void_object_call(p):
+    '''void_object_call : object_call SEMICOLON'''
+    if p[1] != 'void':
+        raise TypeError("Can only call void methods outside of expressions")
 
-# def p_method_call_void(p):
-# '''method_call_void : method_call SEMICOLON'''
+
+def p_object_call(p):
+    '''object_call : object_callAux object_call_1'''
+    global current_function, current_function_types, current_function_ret
+    if current_function:
+        tp = len(current_function_types)
+        code_gen.validate_params(tp)
+        code_gen.go_sub(current_function)
+        ret_type = current_function_ret
+        if ret_type != "void":
+            mem_dir = class_dir[p[1]]['var_table'][current_function]['virtual_address']
+            p[0] = code_gen.call_return(mem_dir, ret_type)
+            code_gen.addOperand(p[0])
+        else:
+            p[0] = current_function_ret
+        current_function = None
+        current_function_types = None
+        current_function_ret = None
+        code_gen.operators.pop()
 
 
-# def p_argument_call(p):
-# '''argument_call : ID POINT ID'''
+def p_object_callAux(p):
+    '''object_callAux : ID POINT ID'''
+    obj = p[1]
+
+    if obj in current_table.table:
+        if current_table.table[obj]['type'] not in ['int', 'float', 'bool', 'string']:
+            class_name = current_table.table[obj]['type']
+        else:
+            raise TypeError("Variable " + obj + " is not an object")
+    elif obj in var_table.table:
+        if var_table.table[obj]['type'] not in ['int', 'float', 'bool', 'string']:
+            class_name = var_table.table[obj]['type']
+        else:
+            raise TypeError("Variable " + obj + " is not an object")
+    else:
+        raise NameError("Unknown variable " + obj)
+
+    element = p[3]
+    v_list = class_dir[class_name]['var_table']
+    f_list = class_dir[class_name]['functions']
+
+    p[0] = class_name
+
+    if element in f_list:
+        global current_function, current_function_types, current_function_ret
+        current_function = element
+        current_function_types = f_list[element]['params']
+        current_function_ret = f_list[element]['return_type']
+        code_gen.generate_era(element)
+    elif element in v_list:
+        code_gen.types.push(v_list[element]['type'])
+        code_gen.addOperand(v_list[element]['virtual_memory'])
+    else:
+        raise NameError(class_name + " objects have no attribute or method " + element)
+
+
+def p_object_call_2(p):
+    '''object_call_1    : object_callAux2 object_call_3 CLOSED_PARENTHESIS
+                        | empty'''
+
+
+def p_object_callAux2(p):
+    '''object_callAux2 : OPEN_PARENTHESIS'''
+    if not current_function:
+        raise TypeError("Object attribute is not function")
+
+
+def p_object_call_3(p):
+    '''object_call_3    : object_callAux1 object_call_4
+                        | empty'''
+
+
+def p_object_call_4(p):
+    '''object_call_4    : COMMA object_callAux1 object_call_4
+                        | empty'''
+
+
+def p_object_callAux1(p):
+    '''object_callAux1 : expression'''
+    code_gen.param_solve()
+    tp = current_function_types
+    if len(tp) > code_gen.par_counter:
+        code_gen.param(tp[code_gen.par_counter]['type'],
+                       tp[code_gen.par_counter]['virtual_address'])
+    else:
+        raise TypeError(
+            "Function parameters exceed expected parameters")
 
 
 def p_func_call(p):
     '''func_call : func_call_aux OPEN_PARENTHESIS func_call_1 CLOSED_PARENTHESIS'''
-    tp = len(
-        list(current_func_dir.directory[current_function]['params'].values()))
+    global current_function, current_function_types, current_function_ret
+    tp = len(current_function_types)
     code_gen.validate_params(tp)
     code_gen.go_sub(current_function)
-    ret_type = current_func_dir.directory[current_function]['return_type']
+    ret_type = current_function_ret
     if ret_type != "void":
         mem_dir = var_table.table[current_function]['virtual_address']
         p[0] = code_gen.call_return(mem_dir, ret_type)
         code_gen.addOperand(p[0])
+    else:
+        p[0] = current_function_ret
+    current_function = None
+    current_function_types = None
+    current_function_ret = None
     code_gen.operators.pop()
 
 
@@ -331,8 +437,10 @@ def p_func_call_aux(p):
     p[0] = p[1]
     if p[1] in current_func_dir.directory:
         code_gen.generate_era(p[1])
-        global current_function
+        global current_function, current_function_types, current_function_ret
         current_function = p[1]
+        current_function_types = list(current_func_dir.directory[current_function]['params'].values())
+        current_function_ret = current_func_dir.directory[current_function]['return_type']
     else:
         raise NameError(
             "Function call to undefined function: " + p[1])
@@ -351,7 +459,7 @@ def p_func_call_2(p):
 def p_func_call_aux_2(p):
     '''func_call_aux_2 : expression'''
     code_gen.param_solve()
-    tp = list(current_func_dir.directory[current_function]['params'].values())
+    tp = current_function_types
     if len(tp) > code_gen.par_counter:
         code_gen.param(tp[code_gen.par_counter]['type'],
                        tp[code_gen.par_counter]['virtual_address'])
@@ -362,6 +470,8 @@ def p_func_call_aux_2(p):
 
 def p_void_call(p):
     '''void_call : func_call SEMICOLON'''
+    if p[1] != 'void':
+        raise TypeError("Can only call void functions outside of expressions")
 
 
 # ---- END CALL DEFINITIONS ----
@@ -445,15 +555,26 @@ def p_declaration_3(p):
 
 
 def p_object_declaration(p):
-    '''object_declaration : ID object_declaration_1 SEMICOLON'''
-    if p[1] not in ['int', 'float', 'bool', 'string']:
-        # TO-DO Validate existing Class in Class-Dir
-        pass
+    '''object_declaration : object_declarationAux object_declaration_1 SEMICOLON'''
 
 
 def p_object_declaration_1(p):
-    '''object_declaration_1 : ID COMMA object_declaration_1
+    '''object_declaration_1 : COMMA ID object_declaration_1
                             | empty'''
+    if len(p) > 2:
+        current_table.store_id(p[2])
+        current_table.set_array(False)
+
+
+def p_object_declarationAux(p):
+    '''object_declarationAux : ID ID'''
+    if p[1] not in ['int', 'float', 'bool', 'string'] and p[1] in class_dir:
+        current_table.set_type(p[1])
+    else:
+        raise TypeError("Class " + p[1] + " does not exist")
+
+    current_table.store_id(p[2])
+    current_table.set_array(False)
 
 
 # ---- END OBJECT_DECLARATION DEFINITION -------
@@ -735,7 +856,8 @@ def p_var_cte(p):
                 | var_cteAuxFLOAT
                 | var_cteAuxSTRING
                 | var_cteAuxBOOL
-                | func_call'''
+                | func_call
+                | object_call'''
     if p[1]:
         p[0] = p[1]
 
@@ -856,6 +978,7 @@ def p_arr_expAux(p):
     p[0] = p[1]
     code_gen.operators.push('ARR')
 
+
 # ---- END ARR_DIM DEFINITION ---------
 
 # ---- BEGIN ID_ARR DEFINITION --------
@@ -937,7 +1060,7 @@ def export_functions_signature():
     signatures_export = ""
     for func in current_func_dir.directory:
         rc = " " + current_func_dir.directory[func]['return_type'] + \
-            " " + str(current_func_dir.directory[func]['position']) + " "
+             " " + str(current_func_dir.directory[func]['position']) + " "
         for param in current_func_dir.directory[func]['params']:
             rc += str(current_func_dir.directory[func]
                       ['params'][param]['type']) + " "
@@ -950,7 +1073,7 @@ def export_ret_functions_address():
     for func in current_func_dir.directory:
         if func in var_table.table:
             addresses += func + " " + \
-                str(var_table.table[func]['virtual_address']) + "\n"
+                         str(var_table.table[func]['virtual_address']) + "\n"
     return addresses
 
 
@@ -967,8 +1090,8 @@ def generateObj():
     if not os.path.isdir(dir_path):
         os.makedirs(dir_path)
     output = export_quads() + "\n" + export_functions_signature() + \
-        "\n" + export_ret_functions_address() + "\n" + export_functions_size() + \
-        "\n" + export_constants()
+             "\n" + export_ret_functions_address() + "\n" + export_functions_size() + \
+             "\n" + export_constants()
     filewriter = open(dir_path + "/out.obj", 'w')
     filewriter.write(output)
 

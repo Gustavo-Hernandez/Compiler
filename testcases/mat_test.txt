@@ -1,5 +1,9 @@
 program BasicTests{
+    int az = 0;
+
     private class Matrix{
+        int z = 0;
+
         func void matMul(){
             int arrA[3][3], arrB[3][3];
             int lenA = 3;
@@ -121,19 +125,57 @@ program BasicTests{
         }
     }
 
+    private class Fibonacci{
+        int omega = 0;
+
+        func int fibLinear(int a){
+            int res;
+            int fib = 0;
+            int fibNext = 1;
+
+            if(a == 0){
+                res = a;
+            }
+            else{
+                if(a == 1){
+                    res = 1;
+                }
+                else{
+                    int i = 1;
+
+                    loop(i < a){
+                        int temp = fibNext;
+                        fibNext = fib + fibNext;
+                        fib = temp;
+                        i = i + 1;
+                    }
+
+                    res = fibNext;
+                }
+            }
+
+            return res;
+        }
+
+        func int fibRecursive(int a){
+            int res;
+
+            if(a == 0){
+                res = 0;
+            }else{
+                if(a == 1){
+                    res = 1;
+                }
+                else{
+                    res = fibRecursive(a - 1) + fibRecursive(a - 2);
+                }
+            }
+            return res;
+        }
+    }
+
     main(){
-        sort();
 
-        int f = 20;
-
-        int index = find(f);
-
-        if(index < 0){
-            print("Not Found In ARR");
-        }
-        else{
-            print("Index is: "+index);
-        }
     }
 }
 

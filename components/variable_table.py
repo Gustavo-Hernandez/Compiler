@@ -32,7 +32,11 @@ class VariableTable:
                         scope, self.type_var, size)
                 else:
                     dims = None
-                    virtualAddress = self.requestAddress(scope, self.type_var)
+                    # Temporal object patch
+                    if self.type_var not in ['int', 'float', 'bool', 'string']:
+                        virtualAddress = None
+                    else:
+                        virtualAddress = self.requestAddress(scope, self.type_var)
 
                 self.table[v] = {
                     'type': self.type_var,

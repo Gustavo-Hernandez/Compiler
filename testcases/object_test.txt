@@ -1,0 +1,49 @@
+program BasicTests{
+    int az = 0;
+
+    public class Animal{
+        int legs;
+
+        func void setLegs(int l){
+            legs = l;
+        }
+
+        func int getLegs(){
+            return legs;
+        }
+
+        func int cells(){
+            return 1;
+        }
+    }
+
+    public class Dog : Animal{
+        func void bark(){
+
+        }
+    }
+
+    public class Cat : Dog{
+        func void mew(){
+
+        }
+    }
+
+    public class Lab{
+        Animal test;
+
+        func void swim(){
+
+        }
+    }
+
+    main(){
+        Dog frodo, luna;
+        Cat percy;
+
+        percy.mew();
+
+        int j = frodo.getLegs() + 7 + 2;
+
+    }
+}
