@@ -18,8 +18,6 @@ class FunctionDirectory:
                     self.global_vartable = self.var_table
                 self.directory[id] = {
                     'return_type': return_type, 'params': self.params, 'position': pos}
-                if (return_type != 'void' and id != 'program'):
-                    self.directory['program']['size']['g_'+return_type] += 1
                 for param in self.params:
                     type_atomic = self.params[param]['type']
                     address = self.params[param]['virtual_address']
