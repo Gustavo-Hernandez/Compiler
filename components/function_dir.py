@@ -44,7 +44,6 @@ class FunctionDirectory:
         return self.var_table
 
     def delete_var_table(self, id):
-        # TODO: ADD PARAMS TO SIZE CALCULATION
         self.directory[id]['size'] = MemoryManager().get_module_counter()
         clean_vartable = self.clean_export()
         self.var_table = None
@@ -52,7 +51,6 @@ class FunctionDirectory:
         return clean_vartable
 
     def store_global_vars(self, id):
-        # TODO: ADD PARAMS TO SIZE CALCULATION
         self.directory[id]['size'] = MemoryManager().get_global_counter()
         clean_vartable = self.clean_export()
         self.var_table = None

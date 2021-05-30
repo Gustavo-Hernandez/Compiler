@@ -34,6 +34,8 @@ err = False
 class_dir = {}
 program_vars = {}
 
+interfaces = {}
+current_interface = {}
 
 # Grammars Definition
 
@@ -41,7 +43,7 @@ program_vars = {}
 
 
 def p_program(p):
-    '''program : programAux programAux1 program_2 main CLOSED_BRACKET'''
+    '''program : programAux programAux1 program_3 main CLOSED_BRACKET'''
     code_gen.end_prog()
     program_vars['program'] = program_vars['program'].directory
     val = program_vars['program']['main']
@@ -59,9 +61,14 @@ def p_programAux(p):
 
 
 def p_programAux1(p):
-    '''programAux1 : OPEN_BRACKET program_1'''
+    '''programAux1 : programAux1_1 program_2'''
+
+
+def p_programAux1_1(p):
+    '''programAux1_1 : OPEN_BRACKET program_1'''
     code_gen.add_main()
     var_tables['global'] = program_vars['program'].store_global_vars('program')
+    code_gen.current_scope = "interfaces"
 
 
 def p_program_1(p):
@@ -70,7 +77,12 @@ def p_program_1(p):
 
 
 def p_program_2(p):
-    '''program_2    : class program_2
+    '''program_2    : interface program_2
+                    | empty'''
+
+
+def p_program_3(p):
+    '''program_3    : class program_3
                     | empty'''
     if not p[1]:
         global current_func_dir
@@ -78,6 +90,32 @@ def p_program_2(p):
 
 
 # ---- END PROGRAM DEFINITION --------
+
+
+# ---- BEGIN INTERFACE DEFINITION ---------
+def p_interface(p):
+    '''interface    :   interfaceAux module_signature CLOSED_BRACKET'''
+    global interfaces, current_interface
+    interfaces[p[1]] = current_interface.directory
+
+
+def p_interfaceAux(p):
+    '''interfaceAux : INTERFACE ID OPEN_BRACKET'''
+    global current_interface
+    current_interface = FunctionDirectory()
+    p[0] = p[2]
+
+
+def p_module_signature(p):
+    '''module_signature :   module_signatureAux module_signature
+                        |   empty'''
+
+
+def p_module_signatureAux(p):
+    '''module_signatureAux  :   FUNC module_retAux SEMICOLON
+                            |   FUNC module_voidAux SEMICOLON'''
+
+# ---- END INTERFACE DEFINITION --------
 
 # ---- BEGIN CLASS DEFINITION ---------
 
@@ -97,6 +135,17 @@ def p_class(p):
                           'functions': current_func_dir.directory,
                           'var_table': var_table.table, 'size': class_size,
                           'address': class_address, 'execution': exe}
+    # Validate class implementation
+    if p[2][3]:
+        for fn in interfaces[p[2][3]]:
+            if fn in current_func_dir.directory:
+                assert interfaces[p[2][3]][fn]['return_type'] == current_func_dir.directory[
+                    fn]['return_type'], "Implemented function " + fn + " has a different return type"
+                assert interfaces[p[2][3]][fn]['params'] == current_func_dir.directory[
+                    fn]['params'], "Implemented function " + fn + " has a different parameters"
+            else:
+                raise ValueError(
+                    "Class " + p[1][0] + " does not implement '" + fn + "' function from interface: " + p[2][3])
 
     # Clear context
     MemoryManager().reset_class_context()
@@ -108,6 +157,9 @@ def p_classAux(p):
     # Class Function Directory reset.
     if p[3] in class_dir:
         raise KeyError("Class " + p[3] + " has already been declared.")
+    if p[3] in interfaces:
+        raise KeyError("Identifier " +
+                       p[3] + " has already been declared as an interface.")
     global current_func_dir, var_table, current_table, code_gen
     code_gen.current_scope = "class"
     current_func_dir = FunctionDirectory()
@@ -120,21 +172,20 @@ def p_classAux(p):
 
 
 def p_class_1(p):
-    '''class_1  : class_1Aux class_4 CLOSED_BRACKET'''
-    # Pushing extension value and class temps upwards
+    '''class_1  : class_1Aux class_5 CLOSED_BRACKET'''
+    # Pushing extension value, class temps and implementation upwards
     p[0] = p[1]
 
 
 def p_class_1Aux(p):
-    '''class_1Aux  : class_2 OPEN_BRACKET class_3'''
-    # TODO: MOVE =>
+    '''class_1Aux  : class_2 class_3 OPEN_BRACKET class_4'''
     # Get class size
     class_temp = MemoryManager().get_class_temps()
     code_gen.reset_t_counter()
     code_gen.current_scope = 'local'
     code_gen.end_class()
-    # Pushing extension value and class temps upwards
-    p[0] = p[1] + [class_temp]
+    # Pushing extension value, class temps and implementation upwards
+    p[0] = p[1] + [class_temp] + [p[2]]
 
 
 def p_class_2(p):
@@ -152,19 +203,27 @@ def p_class_2(p):
             var_table.table = class_dir[p[1]]['var_table'].copy()
             exe = class_dir[p[1]]['execution'].copy()
             size = class_dir[p[1]]['size'].copy()
-            MemoryManager().class_counter_offset(size['c_int'], size['c_float'], size['c_string'], size['c_bool'])
+            MemoryManager().class_counter_offset(
+                size['c_int'], size['c_float'], size['c_string'], size['c_bool'])
     else:
         exe = []
     p[0] = [p[1], exe]
 
 
 def p_class_3(p):
-    '''class_3  : statementAux class_3
+    '''class_3  : implementation
                 | empty'''
+    if p[1]:
+        p[0] = p[1]
 
 
 def p_class_4(p):
-    '''class_4  : module class_4
+    '''class_4  : statementAux class_4
+                | empty'''
+
+
+def p_class_5(p):
+    '''class_5  : module class_5
                 | empty'''
     code_gen.current_scope = 'local'
 
@@ -194,13 +253,23 @@ def p_mainAux(p):
 # ---- BEGIN VISIBILITY DEFINITION ---------
 
 
+def p_implementation(p):
+    '''implementation   : IMPLEMENTS ID'''
+    p[0] = p[2]
+
+
+# ---- END VISIBILITY DEFINITION ---------
+
+# ---- BEGIN IMPLEMENTATION DEFINITION ---------
+
+
 def p_visibility(p):
     '''visibility   : PUBLIC
                     | PRIVATE'''
     p[0] = p[1]
 
 
-# ---- END VISIBILITY DEFINITION ---------
+# ---- END IMPLEMENTATION DEFINITION ---------
 
 # ---- BEGIN STATEMENT DEFINITION ---------
 
@@ -268,10 +337,14 @@ def p_module_void(p):
 def p_module_voidAux(p):
     '''module_voidAux  : VOID ID params'''
     p[0] = p[2]
-    current_func_dir.add_function(p[1], p[2], code_gen.counter)
-    global current_table
-    current_table = current_func_dir.get_var_table()
-
+    if code_gen.current_scope != 'interfaces':
+        current_func_dir.add_function(p[1], p[2], code_gen.counter)
+        global current_table
+        current_table = current_func_dir.get_var_table()
+    else:
+        global current_interface
+        current_interface.add_function(p[1], p[2], code_gen.counter)
+        current_interface.params = {}
 
 # ---- END MODULE_VOID DEFINITION ---------
 
@@ -288,13 +361,18 @@ def p_module_ret(p):
 def p_module_retAux(p):
     '''module_retAux  : type_atomic ID params'''
     p[0] = [p[1], p[2]]
-    current_func_dir.add_function(p[1], p[2], code_gen.counter)
-    var_table.set_array(False)
-    var_table.set_type(p[1])
-    var_table.store_id(p[2])
-    var_table.register('class', cte_table)
-    global current_table
-    current_table = current_func_dir.get_var_table()
+    if code_gen.current_scope != 'interfaces':
+        current_func_dir.add_function(p[1], p[2], code_gen.counter)
+        var_table.set_array(False)
+        var_table.set_type(p[1])
+        var_table.store_id(p[2])
+        var_table.register('class', cte_table)
+        global current_table
+        current_table = current_func_dir.get_var_table()
+    else:
+        global current_interface
+        current_interface.add_function(p[1], p[2], code_gen.counter)
+        current_interface.params = {}
 
 
 def p_module_ret_1(p):
@@ -313,7 +391,11 @@ def p_params(p):
 
 def p_paramsAux(p):
     '''paramsAux : type_atomic ID'''
-    current_func_dir.store_param(p[1], p[2])
+    if code_gen.current_scope != 'interfaces':
+        current_func_dir.store_param(p[1], p[2])
+    else:
+        global current_interface
+        current_interface.store_param(p[1], p[2])
 
 
 def p_params_1(p):
@@ -356,8 +438,10 @@ def p_object_call(p):
         code_gen.end_call()
         ret_type = current_function_ret
         if ret_type != "void":
-            mem_dir = class_dir[p[1][0]]['var_table'][current_function]['virtual_address']
-            p[0] = code_gen.call_return(str(p[1][1]) + '.' + str(mem_dir), ret_type)
+            mem_dir = class_dir[p[1][0]
+                                ]['var_table'][current_function]['virtual_address']
+            p[0] = code_gen.call_return(
+                str(p[1][1]) + '.' + str(mem_dir), ret_type)
             code_gen.addOperand(p[0])
         else:
             p[0] = current_function_ret
@@ -402,7 +486,8 @@ def p_object_callAux(p):
         code_gen.generate_era(element)
     elif element in v_list:
         code_gen.types.push(v_list[element]['type'])
-        code_gen.addOperand(str(memory) + '.' + str(v_list[element]['virtual_address']))
+        code_gen.addOperand(str(memory) + '.' +
+                            str(v_list[element]['virtual_address']))
     else:
         raise NameError(
             class_name + " objects have no attribute or method " + element)
@@ -467,7 +552,8 @@ def p_func_call_aux(p):
         code_gen.generate_era(p[1])
         global current_function, current_function_types, current_function_ret
         current_function = p[1]
-        current_function_types = list(current_func_dir.directory[current_function]['params'].values())
+        current_function_types = list(
+            current_func_dir.directory[current_function]['params'].values())
         current_function_ret = current_func_dir.directory[current_function]['return_type']
     else:
         raise NameError(
@@ -1133,7 +1219,7 @@ def export_functions_signature():
     for key in class_dir:
         for fn in class_dir[key]['functions']:
             rc = " " + class_dir[key]['functions'][fn]['return_type'] + \
-                 " " + str(class_dir[key]['functions'][fn]['position']) + " "
+                " " + str(class_dir[key]['functions'][fn]['position']) + " "
             for param in class_dir[key]['functions'][fn]['params']:
                 rc += str(class_dir[key]['functions'][fn]
                           ['params'][param]['type']) + " "
@@ -1147,8 +1233,8 @@ def export_ret_functions_address():
         for fn in class_dir[key]['functions']:
             if fn in class_dir[key]['var_table']:
                 addresses += key + " " + fn + " " + \
-                             str(class_dir[key]['var_table']
-                                 [fn]['virtual_address']) + "\n"
+                    str(class_dir[key]['var_table']
+                        [fn]['virtual_address']) + "\n"
     return addresses
 
 
@@ -1165,8 +1251,8 @@ def generateObj():
     if not os.path.isdir(dir_path):
         os.makedirs(dir_path)
     output = export_quads() + "\n" + export_functions_signature() + "\n" + export_ret_functions_address() + "\n" + \
-             export_functions_size() + "\n" + export_class_signature() + "\n" + export_classes_size() + "\n" \
-             + export_constants()
+        export_functions_size() + "\n" + export_class_signature() + "\n" + export_classes_size() + "\n" \
+        + export_constants()
     filewriter = open(dir_path + "/out.obj", 'w')
     filewriter.write(output)
 

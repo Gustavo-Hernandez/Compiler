@@ -54,7 +54,9 @@ reserved = {
     'and': 'AND',
     'or': 'OR',
     'return': 'RETURN',
-    'program': 'PROGRAM'
+    'program': 'PROGRAM',
+    'interface': 'INTERFACE',
+    'implements': 'IMPLEMENTS'
 }
 
 # Add the reserved values to the token list.
