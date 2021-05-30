@@ -8,40 +8,72 @@ quad_pointer = 0
 const_table = None
 global_memory = None
 funcs = None
-memories = None
+class_signatures = None
+function_memories = None
+class_memories = None
 call_stack = Stack()
 modules_addresses = None
 idle_memory = None
+idle_object = None
+class_type = Stack()
+class_address = Stack()
+class_vars = {}
+class_vars_stack = Stack()
+object_subroutines = []
 memory_stack = Stack()
 quad_pointer_stack = Stack()
 
 
 def get_value(address):
-    global const_table, global_memory, memory_stack
+    global const_table, global_memory, memory_stack, class_vars
     current_memory = memory_stack.top()
-    if address in global_memory:
-        value = global_memory[address]
+    if address in current_memory:
+        value = current_memory[address]
     elif address in const_table:
         value = const_table[address]
-    elif address in current_memory:
-        value = current_memory[address]
+    elif address in class_vars:
+        value = class_vars[address]
+    elif address in global_memory:
+        value = global_memory[address]
     else:
-        raise RuntimeError("Invalid Address: " + str(address))
+        raise RuntimeError("Invalid Address: " + str(address)+ " at quad ", quad_pointer)
     if value == None:
         print("[ERROR] Uninitialized value at " + str(address) + " at quad ", quad_pointer)
         sys.exit()
     return value
 
 
-def store_value(value, address):
-    global const_table, global_memory, memory_stack
+def get_compound(obj, address):
+    global const_table, global_memory, memory_stack, class_vars
     current_memory = memory_stack.top()
-    if address in global_memory:
-        global_memory[address] = value
-    elif address in current_memory:
+    if obj in current_memory:
+        value = current_memory[obj][address]
+    elif obj in class_vars:
+        value = class_vars[obj][address]
+    else:
+        raise RuntimeError("Invalid Address: " + str(address))
+    if value is None:
+        print("[ERROR] Uninitialized value at " + str(address) + " at quad ", quad_pointer)
+        sys.exit()
+    return value
+
+
+def store_value(value, address):
+    global const_table, global_memory, memory_stack, class_vars
+    current_memory = memory_stack.top()
+    if address in current_memory:
         current_memory[address] = value
+    elif address in class_vars:
+        class_vars[address] = value
+    elif address in global_memory:
+        global_memory[address] = value
     else:
         raise RuntimeError("Invalid Address: " + str(address) + " at quad ", quad_pointer)
+
+
+def generate_object(memory, address):
+    current_memory = memory_stack.top()
+    current_memory[address] = memory
 
 
 def store_param(value, address):
@@ -52,19 +84,28 @@ def store_param(value, address):
         raise RuntimeError("Invalid Address: " + str(address) + " at quad ", quad_pointer)
 
 
+def process_object_attribute(address):
+    if type(address) == str:
+        parts = address.split('.')
+        return get_compound(int(parts[0]), int(parts[1]))
+    else:
+        return get_value(address)
+
+
 def process_quad(param_quad):
-    global quad_pointer, modules_addresses, call_stack, idle_memory
+    global quad_pointer, modules_addresses, call_stack, idle_memory, object_subroutines, \
+        class_type, class_address, class_vars, idle_object, class_vars_stack
     quad = param_quad.copy()
 
     for i in range(1, 4):
         if type(quad[i]) == str and "(" in quad[i]:
-            quad[i] = get_value(int(quad[i].replace("(", "").replace(")", "")))
+            quad[i] = process_object_attribute(int(quad[i].replace("(", "").replace(")", "")))
 
     if quad[0] == "goto":
         quad_pointer = quad[3] - 1
     elif quad[0] == "+":
-        izq = get_value(quad[1])
-        der = get_value(quad[2])
+        izq = process_object_attribute(quad[1])
+        der = process_object_attribute(quad[2])
         if type(der) == str and type(izq) == str:
             result = izq.strip('"') + der.strip('"')
         elif type(izq) == str:
@@ -76,97 +117,102 @@ def process_quad(param_quad):
         store_value(result, quad[3])
         quad_pointer += 1
     elif quad[0] == "-":
-        izq = get_value(quad[1])
-        der = get_value(quad[2])
+        izq = process_object_attribute(quad[1])
+        der = process_object_attribute(quad[2])
         result = izq - der
         store_value(result, quad[3])
         quad_pointer += 1
     elif quad[0] == "*":
-        izq = get_value(quad[1])
-        der = get_value(quad[2])
+        izq = process_object_attribute(quad[1])
+        der = process_object_attribute(quad[2])
         result = izq * der
         store_value(result, quad[3])
         quad_pointer += 1
     elif quad[0] == "/":
-        izq = get_value(quad[1])
-        der = get_value(quad[2])
+        izq = process_object_attribute(quad[1])
+        der = process_object_attribute(quad[2])
         result = izq / der
         store_value(result, quad[3])
         quad_pointer += 1
     elif quad[0] == "=":
-        value = get_value(quad[1])
+        value = process_object_attribute(quad[1])
         store_value(value, quad[3])
         quad_pointer += 1
     elif quad[0] == "print":
-        text = get_value(quad[3])
+        text = process_object_attribute(quad[3])
         print(text)
         quad_pointer += 1
     elif quad[0] == ">":
-        izq = get_value(quad[1])
-        der = get_value(quad[2])
+        izq = process_object_attribute(quad[1])
+        der = process_object_attribute(quad[2])
         store_value(izq > der, quad[3])
         quad_pointer += 1
     elif quad[0] == "<":
-        izq = get_value(quad[1])
-        der = get_value(quad[2])
+        izq = process_object_attribute(quad[1])
+        der = process_object_attribute(quad[2])
         store_value(izq < der, quad[3])
         quad_pointer += 1
     elif quad[0] == "==":
-        izq = get_value(quad[1])
-        der = get_value(quad[2])
+        izq = process_object_attribute(quad[1])
+        der = process_object_attribute(quad[2])
         store_value(izq == der, quad[3])
         quad_pointer += 1
     elif quad[0] == "!=":
-        izq = get_value(quad[1])
-        der = get_value(quad[2])
+        izq = process_object_attribute(quad[1])
+        der = process_object_attribute(quad[2])
         store_value(izq != der, quad[3])
         quad_pointer += 1
     elif quad[0] == "and":
-        izq = get_value(quad[1])
-        der = get_value(quad[2])
+        izq = process_object_attribute(quad[1])
+        der = process_object_attribute(quad[2])
         store_value(izq and der, quad[3])
         quad_pointer += 1
     elif quad[0] == "or":
-        izq = get_value(quad[1])
-        der = get_value(quad[2])
+        izq = process_object_attribute(quad[1])
+        der = process_object_attribute(quad[2])
         store_value(izq or der, quad[3])
         quad_pointer += 1
     elif quad[0] == "gotoF":
-        var = get_value(quad[1])
+        var = process_object_attribute(quad[1])
         if var:
             quad_pointer += 1
         else:
             quad_pointer = quad[3] - 1
     elif quad[0] == "ERA":
-        idle_memory = MemoryManager().request_localmemory(memories[quad[1]])
-        call_stack.push(quad[1])
+        func = class_type.top() + '.' + quad[1]
+        idle_memory = MemoryManager().request_localmemory(function_memories[func])
+        if funcs[func]['type'] != 'void':
+            call_stack.push(quad[1])
         quad_pointer += 1
     elif quad[0] == "PARAM":
-        value = get_value(quad[1])
+        value = process_object_attribute(quad[1])
         store_param(value, quad[3])
         quad_pointer += 1
     elif quad[0] == "GOSUB":
+        if idle_object:
+            memory_stack.push(idle_object)
+            idle_object = None
         memory_stack.push(idle_memory)
         idle_memory = None
         quad_pointer_stack.push(quad_pointer)
-        quad_pointer = funcs[quad[3]]['position'] - 1
+        quad_pointer = funcs[class_type.top() + '.' + quad[3]]['position'] - 1
     elif quad[0] == "ENDFUNC":
+        memory_stack.pop()
         quad_pointer = quad_pointer_stack.pop()
         quad_pointer += 1
     elif quad[0] == "VER":
-        index = get_value(quad[1])
-        lim_inf = get_value(quad[2])
-        lim_sup = get_value(quad[3])
+        index = process_object_attribute(quad[1])
+        lim_inf = process_object_attribute(quad[2])
+        lim_sup = process_object_attribute(quad[3])
         if index < lim_inf or index > lim_sup:
             print("[ERROR] Index out of range ", index, lim_inf, lim_sup)
             sys.exit()
         quad_pointer += 1
     elif quad[0] == "RETURN":
-        value = get_value(quad[3])
+        value = process_object_attribute(quad[3])
         fn_id = call_stack.pop()
-        address = modules_addresses[fn_id]
+        address = modules_addresses[class_type.top() + '.' + fn_id]
         store_value(value, address)
-        memory_stack.pop()
         quad_pointer += 1
     elif quad[0] == "READ":
         address = quad[3]
@@ -190,26 +236,70 @@ def process_quad(param_quad):
 
         store_value(value, address)
         quad_pointer += 1
+    elif quad[0] == "OBJ":
+        class_name = quad[1]
+        address = quad[3]
+        memory = MemoryManager().request_classmemory(class_memories[class_name])
+        memory_stack.push(memory)
+        class_address.push(address)
+        class_type.push(class_name)
+        object_subroutines = class_signatures[class_name].copy()
+        quad_pointer += 1
+    elif quad[0] == "OBJSUB":
+        if object_subroutines:
+            quad_pointer_stack.push(quad_pointer)
+            quad_pointer = object_subroutines.pop(0) - 1
+        else:
+            generate_object(memory_stack.pop(), class_address.top())
+            class_address.pop()
+            class_type.pop()
+            quad_pointer += 1
+    elif quad[0] == "ENDCLS":
+        quad_pointer = quad_pointer_stack.pop()
+    elif quad[0] == "MEM":
+        current_mem = memory_stack.top()
+        class_type.push(quad[1])
+        class_address.push(quad[3])
+        if class_address.top() in current_mem:
+            class_vars = current_mem[class_address.top()]
+        else:
+            class_vars_stack.push(class_vars)
+            class_vars = class_vars[class_address.top()]
+        idle_object = class_vars.copy()
+        quad_pointer += 1
+    elif quad[0] == "ENDCLL":
+        if class_vars_stack.top():
+            class_vars = class_vars_stack.pop()
+        else:
+            class_vars = {}
+        class_type.pop()
+        class_address.pop()
+        memory_stack.pop()
+        quad_pointer += 1
     else:
         raise RuntimeError("Unimplemented Action Code: " + quad[0])
 
 
 def main():
-    global const_table, global_memory, memory_stack, funcs, memories, modules_addresses
+    global const_table, global_memory, memory_stack, funcs, function_memories, \
+        modules_addresses, class_memories, class_signatures
 
     file_loader = FileLoader("./output/out.obj")
     (quadruples, functions, ret_modules_address,
-     memory, constants) = file_loader.get_data()
+     func_memory, class_exe, class_memory, constants) = file_loader.get_data()
 
     funcs = functions
-    memories = memory
+    function_memories = func_memory
     modules_addresses = ret_modules_address
+    class_memories = class_memory
+    class_signatures = class_exe
 
     const_table = constants
-    global_memory = MemoryManager().request_globalmemory(memory['program'])
-    if 'main' in memory:
-        main_memory = MemoryManager().request_localmemory(memory['main'])
-        memory_stack.push(main_memory)
+
+    global_memory = MemoryManager().request_globalmemory(class_memories['program'])
+
+    main_memory = MemoryManager().request_localmemory(class_memories['main'])
+    memory_stack.push(main_memory)
 
     while True:
         if quadruples[quad_pointer][0] == "END":

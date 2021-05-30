@@ -241,6 +241,14 @@ class CodeGenerator:
         self.quadruples.append(['ENDFUNC', None, None, None])
         self.counter += 1
 
+    def end_class(self):
+        self.quadruples.append(['ENDCLS', None, None, None])
+        self.counter += 1
+
+    def end_call(self):
+        self.quadruples.append(['ENDCLL', None, None, None])
+        self.counter += 1
+
     def add_main(self):
         self.quadruples.append(['goto', None, None, None])
         self.main_quad = self.counter - 1
@@ -382,3 +390,13 @@ class CodeGenerator:
         tp = self.types.pop()
 
         self.quadruples.append(['READ', tp, None, val])
+        self.counter += 1
+
+    def add_object(self, class_name, val):
+        self.quadruples.append(['OBJ', class_name, None, val])
+        self.quadruples.append(['OBJSUB', None, None, None])
+        self.counter += 2
+
+    def add_mem(self, val, class_name):
+        self.quadruples.append(['MEM', class_name, None, val])
+        self.counter += 1

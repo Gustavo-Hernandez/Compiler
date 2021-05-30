@@ -27,6 +27,7 @@ current_function = None
 current_function_types = None
 current_function_ret = None
 current_arr = None
+object_queue = []
 current_arr_id = ''
 code_gen = CodeGenerator()
 err = False
@@ -88,11 +89,14 @@ def p_class(p):
     # Class size calculation
     class_size = {}
     class_size.update(MemoryManager().get_class_vars())
-    class_size.update(p[2][1])
+    class_size.update(p[2][2])
+
     class_address = MemoryManager().request_class_address(p[1][0], p[1][1])
+    exe = p[2][1] + [p[1][2]]
     class_dir[p[1][0]] = {"visibility": p[1][1], "extension": p[2][0],
                           'functions': current_func_dir.directory,
-                          'var_table': var_table.table, 'size': class_size, 'address': class_address}
+                          'var_table': var_table.table, 'size': class_size,
+                          'address': class_address, 'execution': exe}
 
     # Clear context
     MemoryManager().reset_class_context()
@@ -112,7 +116,7 @@ def p_classAux(p):
     current_func_dir.class_vartable = var_table
     current_table = var_table
     # Pushing visibility and id value upwards
-    p[0] = [p[3], p[1]]
+    p[0] = [p[3], p[1], code_gen.counter]
 
 
 def p_class_1(p):
@@ -128,8 +132,9 @@ def p_class_1Aux(p):
     class_temp = MemoryManager().get_class_temps()
     code_gen.reset_t_counter()
     code_gen.current_scope = 'local'
+    code_gen.end_class()
     # Pushing extension value and class temps upwards
-    p[0] = [p[1], class_temp]
+    p[0] = p[1] + [class_temp]
 
 
 def p_class_2(p):
@@ -145,7 +150,12 @@ def p_class_2(p):
         else:
             current_func_dir.directory = class_dir[p[1]]['functions'].copy()
             var_table.table = class_dir[p[1]]['var_table'].copy()
-    p[0] = p[1]
+            exe = class_dir[p[1]]['execution'].copy()
+            size = class_dir[p[1]]['size'].copy()
+            MemoryManager().class_counter_offset(size['c_int'], size['c_float'], size['c_string'], size['c_bool'])
+    else:
+        exe = []
+    p[0] = [p[1], exe]
 
 
 def p_class_3(p):
@@ -157,6 +167,7 @@ def p_class_4(p):
     '''class_4  : module class_4
                 | empty'''
     code_gen.current_scope = 'local'
+
 
 # ---- END CLASS DEFINITION ---------
 
@@ -342,11 +353,11 @@ def p_object_call(p):
         tp = len(current_function_types)
         code_gen.validate_params(tp)
         code_gen.go_sub(current_function)
+        code_gen.end_call()
         ret_type = current_function_ret
         if ret_type != "void":
-            mem_dir = class_dir[p[1]
-                                ]['var_table'][current_function]['virtual_address']
-            p[0] = code_gen.call_return(mem_dir, ret_type)
+            mem_dir = class_dir[p[1][0]]['var_table'][current_function]['virtual_address']
+            p[0] = code_gen.call_return(str(p[1][1]) + '.' + str(mem_dir), ret_type)
             code_gen.addOperand(p[0])
         else:
             p[0] = current_function_ret
@@ -354,6 +365,8 @@ def p_object_call(p):
         current_function_types = None
         current_function_ret = None
         code_gen.operators.pop()
+    else:
+        p[0] = 'attribute'
 
 
 def p_object_callAux(p):
@@ -362,11 +375,13 @@ def p_object_callAux(p):
     if obj in current_table.table:
         if current_table.table[obj]['type'] not in ['int', 'float', 'bool', 'string']:
             class_name = current_table.table[obj]['type']
+            memory = current_table.table[obj]['virtual_address']
         else:
             raise TypeError("Variable " + obj + " is not an object")
     elif obj in var_table.table:
         if var_table.table[obj]['type'] not in ['int', 'float', 'bool', 'string']:
             class_name = var_table.table[obj]['type']
+            memory = var_table.table[obj]['virtual_address']
         else:
             raise TypeError("Variable " + obj + " is not an object")
     else:
@@ -376,17 +391,18 @@ def p_object_callAux(p):
     v_list = class_dir[class_name]['var_table']
     f_list = class_dir[class_name]['functions']
 
-    p[0] = class_name
+    p[0] = [class_name, memory]
 
     if element in f_list:
         global current_function, current_function_types, current_function_ret
         current_function = element
-        current_function_types = f_list[element]['params']
+        code_gen.add_mem(memory, class_name)
+        current_function_types = list(f_list[element]['params'].values())
         current_function_ret = f_list[element]['return_type']
         code_gen.generate_era(element)
     elif element in v_list:
         code_gen.types.push(v_list[element]['type'])
-        code_gen.addOperand(v_list[element]['virtual_memory'])
+        code_gen.addOperand(str(memory) + '.' + str(v_list[element]['virtual_address']))
     else:
         raise NameError(
             class_name + " objects have no attribute or method " + element)
@@ -451,8 +467,7 @@ def p_func_call_aux(p):
         code_gen.generate_era(p[1])
         global current_function, current_function_types, current_function_ret
         current_function = p[1]
-        current_function_types = list(
-            current_func_dir.directory[current_function]['params'].values())
+        current_function_types = list(current_func_dir.directory[current_function]['params'].values())
         current_function_ret = current_func_dir.directory[current_function]['return_type']
     else:
         raise NameError(
@@ -513,9 +528,14 @@ def p_assignation_1(p):
 
 
 def p_declaration(p):
-    '''declaration : type_atomic declaration_1 SEMICOLON
+    '''declaration  : type_atomic declaration_1 SEMICOLON
                     | object_declaration'''
+    tp = current_table.type_var
     current_table.register(code_gen.current_scope, cte_table)
+    global object_queue
+    for obj in object_queue:
+        code_gen.add_object(tp, current_table.table[obj]['virtual_address'])
+    object_queue = []
 
 
 def p_declaration_1(p):
@@ -569,6 +589,8 @@ def p_declaration_3(p):
 
 def p_object_declaration(p):
     '''object_declaration : object_declarationAux object_declaration_1 SEMICOLON'''
+    global object_queue
+    object_queue = current_table.queue
 
 
 def p_object_declaration_1(p):
@@ -587,6 +609,7 @@ def p_object_declarationAux(p):
         raise TypeError("Class " + p[1] + " does not exist")
     current_table.store_id(p[2])
     current_table.set_array(False)
+
 
 # ---- END OBJECT_DECLARATION DEFINITION -------
 
@@ -1076,10 +1099,19 @@ def export_classes_size():
         size_export += "\n"
     for var in program_vars['program']:
         size_export += var
-        print(var, program_vars['program'][var]['size'])
         for dim_size in program_vars['program'][var]['size']:
             size_export += " " + \
-                str(program_vars['program'][var]['size'][dim_size])
+                           str(program_vars['program'][var]['size'][dim_size])
+        size_export += "\n"
+    return size_export
+
+
+def export_class_signature():
+    size_export = ""
+    for key in class_dir:
+        size_export += key
+        for exe in class_dir[key]['execution']:
+            size_export += " " + str(exe)
         size_export += "\n"
     return size_export
 
@@ -1101,7 +1133,7 @@ def export_functions_signature():
     for key in class_dir:
         for fn in class_dir[key]['functions']:
             rc = " " + class_dir[key]['functions'][fn]['return_type'] + \
-                " " + str(class_dir[key]['functions'][fn]['position']) + " "
+                 " " + str(class_dir[key]['functions'][fn]['position']) + " "
             for param in class_dir[key]['functions'][fn]['params']:
                 rc += str(class_dir[key]['functions'][fn]
                           ['params'][param]['type']) + " "
@@ -1115,8 +1147,8 @@ def export_ret_functions_address():
         for fn in class_dir[key]['functions']:
             if fn in class_dir[key]['var_table']:
                 addresses += key + " " + fn + " " + \
-                    str(class_dir[key]['var_table']
-                        [fn]['virtual_address']) + "\n"
+                             str(class_dir[key]['var_table']
+                                 [fn]['virtual_address']) + "\n"
     return addresses
 
 
@@ -1132,9 +1164,9 @@ def generateObj():
     dir_path = 'output'
     if not os.path.isdir(dir_path):
         os.makedirs(dir_path)
-    output = export_quads() + "\n" + export_functions_signature() + "\n" + \
-        export_ret_functions_address() + "\n" + export_functions_size() + "\n" + export_classes_size() + \
-        "\n" + export_constants()
+    output = export_quads() + "\n" + export_functions_signature() + "\n" + export_ret_functions_address() + "\n" + \
+             export_functions_size() + "\n" + export_class_signature() + "\n" + export_classes_size() + "\n" \
+             + export_constants()
     filewriter = open(dir_path + "/out.obj", 'w')
     filewriter.write(output)
 
@@ -1147,5 +1179,4 @@ if len(sys.argv) > 1:
     # Parse the file content.
     result = parser.parse(file_content)
     if not err:
-        print(program_vars)
         generateObj()

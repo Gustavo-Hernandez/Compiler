@@ -8,7 +8,7 @@ class MemoryManagerMeta(type):
         return cls._instances[cls]
 
 
-class MemoryManager (metaclass=MemoryManagerMeta):
+class MemoryManager(metaclass=MemoryManagerMeta):
     def __init__(self):
         # This structure allows to set the upper and
         # lower limits of an address space.
@@ -92,8 +92,8 @@ class MemoryManager (metaclass=MemoryManagerMeta):
         self.class_bases = {}
         self.object_counter = {}
         self.class_map = {
-            'private': 1000,
-            'public': 2000,
+            'private': 30000,
+            'public': 40000,
         }
         self.class_counter = {
             'private': 0,
@@ -135,9 +135,15 @@ class MemoryManager (metaclass=MemoryManagerMeta):
             'int': 0
         }
 
+    def class_counter_offset(self, i, f, s, b):
+        self.counter['class']['int'] += i
+        self.counter['class']['float'] += f
+        self.counter['class']['string'] += s
+        self.counter['class']['bool'] += b
+
     def request_class_address(self, id, visibility):
         new_address = self.class_map[visibility] + \
-            self.class_counter[visibility]
+                      self.class_counter[visibility]
         self.class_map[visibility] += self.class_offset
         self.object_counter[id] = new_address
         self.class_bases[id] = new_address
@@ -200,7 +206,7 @@ class MemoryManager (metaclass=MemoryManagerMeta):
     def request_address(self, scope, tp):
         if tp in ['int', 'bool', 'float', 'string']:
             nextAddress = self.map[scope][tp][0] + self.counter[scope][tp]
-            if(nextAddress <= self.map[scope][tp][1]):
+            if (nextAddress <= self.map[scope][tp][1]):
                 self.counter[scope][tp] += 1
                 return nextAddress
             raise MemoryError("Insuficient memory to assign a new address")
@@ -212,7 +218,7 @@ class MemoryManager (metaclass=MemoryManagerMeta):
         if size < 1:
             raise ValueError("Address block must be greater than 1.")
         nextAddress = self.map[scope][tp][0] + self.counter[scope][tp]
-        if(nextAddress <= self.map[scope][tp][1]):
+        if (nextAddress <= self.map[scope][tp][1]):
             self.counter[scope][tp] += size
             return nextAddress
         raise MemoryError("Insuficient memory to assign a new address")
@@ -239,7 +245,7 @@ class MemoryManager (metaclass=MemoryManagerMeta):
             range(self.map['pointers']['int'][0], self.map['pointers']['int'][0] + memspace[8]))
 
         spaces = l_int_space + l_float_space + l_string_space + l_bool_space + \
-            t_int_space + t_float_space + t_string_space + t_bool_space + pointer_space
+                 t_int_space + t_float_space + t_string_space + t_bool_space + pointer_space
 
         addresses = list(map(lambda x: (x, None), spaces))
         return dict(addresses)
@@ -255,18 +261,45 @@ class MemoryManager (metaclass=MemoryManagerMeta):
         g_bool_space = list(
             range(self.map['global']['bool'][0], self.map['global']['bool'][0] + memspace[3]))
         t_int_space = list(
-            range(self.map['global']['int'][0], self.map['global']['int'][0] + memspace[4]))
+            range(self.map['temp']['int'][0], self.map['temp']['int'][0] + memspace[4]))
         t_float_space = list(
-            range(self.map['global']['float'][0], self.map['global']['float'][0] + memspace[5]))
+            range(self.map['temp']['float'][0], self.map['temp']['float'][0] + memspace[5]))
         t_string_space = list(
-            range(self.map['global']['string'][0], self.map['global']['string'][0] + memspace[6]))
+            range(self.map['temp']['string'][0], self.map['temp']['string'][0] + memspace[6]))
         t_bool_space = list(
-            range(self.map['global']['bool'][0], self.map['global']['bool'][0] + memspace[7]))
+            range(self.map['temp']['bool'][0], self.map['temp']['bool'][0] + memspace[7]))
         pointer_space = list(
             range(self.map['pointers']['int'][0], self.map['pointers']['int'][0] + memspace[8]))
 
         spaces = g_int_space + g_float_space + g_string_space + g_bool_space + \
-            t_int_space + t_float_space + t_string_space + t_bool_space + pointer_space
+                 t_int_space + t_float_space + t_string_space + t_bool_space + pointer_space
+
+        addresses = list(map(lambda x: (x, None), spaces))
+        return dict(addresses)
+
+    def request_classmemory(self, memspace):
+        # TODO: Validate mem in range values.
+        c_int_space = list(
+            range(self.map['class']['int'][0], self.map['class']['int'][0] + memspace[0]))
+        c_float_space = list(
+            range(self.map['class']['float'][0], self.map['class']['float'][0] + memspace[1]))
+        c_string_space = list(
+            range(self.map['class']['string'][0], self.map['class']['string'][0] + memspace[2]))
+        c_bool_space = list(
+            range(self.map['class']['bool'][0], self.map['class']['bool'][0] + memspace[3]))
+        t_int_space = list(
+            range(self.map['temp']['int'][0], self.map['temp']['int'][0] + memspace[4]))
+        t_float_space = list(
+            range(self.map['temp']['float'][0], self.map['temp']['float'][0] + memspace[5]))
+        t_string_space = list(
+            range(self.map['temp']['string'][0], self.map['temp']['string'][0] + memspace[6]))
+        t_bool_space = list(
+            range(self.map['temp']['bool'][0], self.map['temp']['bool'][0] + memspace[7]))
+        pointer_space = list(
+            range(self.map['pointers']['int'][0], self.map['pointers']['int'][0] + memspace[8]))
+
+        spaces = c_int_space + c_float_space + c_string_space + c_bool_space + \
+                 t_int_space + t_float_space + t_string_space + t_bool_space + pointer_space
 
         addresses = list(map(lambda x: (x, None), spaces))
         return dict(addresses)

@@ -1,49 +1,51 @@
 program BasicTests{
-    int az = 0;
-
     public class Animal{
-        int legs;
-
-        func void setLegs(int l, int a, int b){
-            legs = l;
-        }
+        int legs = 0;
 
         func int getLegs(){
             return legs;
         }
-
-        func int cells(){
-            return 1;
-        }
     }
 
-    public class Dog : Animal{
-        func void bark(){
-
-        }
+    public class Rino : Animal{
+        legs = 4;
     }
 
-    public class Cat : Dog{
-        func void mew(){
+    public class Spider : Animal{
+        legs = 8;
 
-        }
+        string venom = "Medium";
     }
 
-    public class Lab{
-        Animal test;
+    public class Tarantula : Spider{
+        venom = "Low";
+    }
 
-        func void swim(){
+    public class Monkey : Animal{
+        legs = 2;
 
+        float popularity = 0.95;
+    }
+
+    public class Zoo{
+        int i = 0;
+        Rino rin;
+        Monkey mon;
+        Tarantula tr;
+
+        func void printAnimals(){
+            print("Rino legs: " + rin.getLegs());
+            print("Monkey legs: " + mon.getLegs());
+            print("Monkey popularity: " + mon.popularity);
+            print("Tarantula legs: " + tr.legs);
+            print("Tarantula venom level: " + tr.venom);
         }
     }
 
     main(){
-        Dog frodo, luna;
-        Cat percy;
+        int i;
+        Zoo zacango;
 
-        percy.mew();
-
-        int j =  0 + 7 + 2;
-
+        zacango.printAnimals();
     }
 }
