@@ -21,32 +21,44 @@ class MemoryManager (metaclass=MemoryManagerMeta):
                 'string': [2500, 3499],
                 'bool': [3500, 3999]
             },
-            'local': {
+            'class': {
                 'int': [4000, 4499],
                 'float': [4500, 4999],
                 'string': [5500, 5999],
                 'bool': [6000, 6999]
             },
-            'temp': {
+            'local': {
                 'int': [7000, 7499],
                 'float': [7500, 7999],
                 'string': [8500, 8999],
                 'bool': [9000, 9499]
             },
-            'const': {
+            'temp': {
                 'int': [9500, 9699],
                 'float': [9750, 9999],
                 'string': [10000, 10249],
                 'bool': [10250, 10499]
             },
+            'const': {
+                'int': [10500, 10999],
+                'float': [11000, 11499],
+                'string': [11500, 11999],
+                'bool': [12000, 12499]
+            },
             'pointers': {
-                'int': [12000, 13000]
+                'int': [20000, 21999]
             }
         }
         # This structure allows to keep track of the current
         # requested addresses
         self.counter = {
             'global': {
+                'int': 0,
+                'float': 0,
+                'string': 0,
+                'bool': 0
+            },
+            'class': {
                 'int': 0,
                 'float': 0,
                 'string': 0,
@@ -73,7 +85,21 @@ class MemoryManager (metaclass=MemoryManagerMeta):
             'pointers': {
                 'int': 0
             }
+
         }
+
+        # Class map definition
+        self.class_bases = {}
+        self.object_counter = {}
+        self.class_map = {
+            'private': 1000,
+            'public': 2000,
+        }
+        self.class_counter = {
+            'private': 0,
+            'public': 0,
+        }
+        self.class_offset = 100
 
     def reset_module_context(self):
         self.counter['temp'] = {
@@ -91,6 +117,55 @@ class MemoryManager (metaclass=MemoryManagerMeta):
         self.counter['pointers'] = {
             'int': 0
         }
+
+    def reset_class_context(self):
+        self.counter['class'] = {
+            'int': 0,
+            'float': 0,
+            'string': 0,
+            'bool': 0
+        }
+        self.counter['temp'] = {
+            'int': 0,
+            'float': 0,
+            'string': 0,
+            'bool': 0
+        }
+        self.counter['pointers'] = {
+            'int': 0
+        }
+
+    def request_class_address(self, id, visibility):
+        new_address = self.class_map[visibility] + \
+            self.class_counter[visibility]
+        self.class_map[visibility] += self.class_offset
+        self.object_counter[id] = new_address
+        self.class_bases[id] = new_address
+        return new_address
+
+    def request_object_address(self, classname):
+        new_address = self.object_counter[classname]
+        self.object_counter[classname] += 1
+        return new_address
+
+    def get_class_vars(self):
+        mem_space = {
+            'c_int': self.counter['class']['int'],
+            'c_float': self.counter['class']['float'],
+            'c_string': self.counter['class']['string'],
+            'c_bool': self.counter['class']['bool'],
+        }
+        return mem_space
+
+    def get_class_temps(self):
+        mem_space = {
+            't_int': self.counter['temp']['int'],
+            't_float': self.counter['temp']['float'],
+            't_string': self.counter['temp']['string'],
+            't_bool': self.counter['temp']['bool'],
+            'pointers': self.counter['pointers']['int']
+        }
+        return mem_space
 
     def get_module_counter(self):
         mem_space = {
@@ -123,10 +198,14 @@ class MemoryManager (metaclass=MemoryManagerMeta):
     # Request and Address given a scope and type
     # The return value is an available address as an integer.
     def request_address(self, scope, tp):
-        nextAddress = self.map[scope][tp][0] + self.counter[scope][tp]
-        if(nextAddress <= self.map[scope][tp][1]):
-            self.counter[scope][tp] += 1
-            return nextAddress
+        if tp in ['int', 'bool', 'float', 'string']:
+            nextAddress = self.map[scope][tp][0] + self.counter[scope][tp]
+            if(nextAddress <= self.map[scope][tp][1]):
+                self.counter[scope][tp] += 1
+                return nextAddress
+            raise MemoryError("Insuficient memory to assign a new address")
+        if self.object_counter[tp] + 1 < self.class_bases[tp] + 100:
+            return self.request_object_address(tp)
         raise MemoryError("Insuficient memory to assign a new address")
 
     def request_address_block(self, scope, tp, size):
@@ -137,49 +216,6 @@ class MemoryManager (metaclass=MemoryManagerMeta):
             self.counter[scope][tp] += size
             return nextAddress
         raise MemoryError("Insuficient memory to assign a new address")
-
-    def get_address_type(self, memAddress):
-        if memAddress >= self.map['global']['int'][0] and memAddress <= self.map['pointers']['int'][1]:
-            # Get Scope of INT Address
-            if memAddress in range(self.map['global']['int'][0], self.self.map['global']['int'][1]):
-                return ['global', 'int']
-            elif memAddress in range(self.map['local']['int'][0], self.self.map['local']['int'][1]):
-                return ['local', 'int']
-            elif memAddress in range(self.map['temp']['int'][0], self.self.map['temp']['int'][1]):
-                return ['temp', 'int']
-            elif memAddress in range(self.map['const']['int'][0], self.self.map['const']['int'][1]):
-                return ['const', 'int']
-            elif memAddress in range(self.map['pointer']['int'][0], self.self.map['pointer']['int'][1]):
-                return ['pointer', 'int']
-            # Get Scope of FLOAT Address
-            elif memAddress in range(self.map['global']['float'][0], self.self.map['global']['float'][1]):
-                return ['global', 'float']
-            elif memAddress in range(self.map['local']['float'][0], self.self.map['local']['float'][1]):
-                return ['local', 'float']
-            elif memAddress in range(self.map['temp']['float'][0], self.self.map['temp']['float'][1]):
-                return ['temp', 'float']
-            elif memAddress in range(self.map['const']['float'][0], self.self.map['const']['float'][1]):
-                return ['const', 'float']
-            # Get Scope of STRING Address
-            elif memAddress in range(self.map['global']['string'][0], self.self.map['global']['string'][1]):
-                return ['global', 'string']
-            elif memAddress in range(self.map['local']['string'][0], self.self.map['local']['string'][1]):
-                return ['local', 'string']
-            elif memAddress in range(self.map['temp']['string'][0], self.self.map['temp']['string'][1]):
-                return ['temp', 'string']
-            elif memAddress in range(self.map['const']['string'][0], self.self.map['const']['string'][1]):
-                return ['const', 'string']
-            # Get Scope of BOOL Address
-            elif memAddress in range(self.map['global']['bool'][0], self.self.map['global']['bool'][1]):
-                return ['global', 'bool']
-            elif memAddress in range(self.map['local']['bool'][0], self.self.map['local']['bool'][1]):
-                return ['local', 'bool']
-            elif memAddress in range(self.map['temp']['bool'][0], self.self.map['temp']['bool'][1]):
-                return ['temp', 'bool']
-            elif memAddress in range(self.map['const']['bool'][0], self.self.map['const']['bool'][1]):
-                return ['const', 'bool']
-        # If memory address not in range return error.
-        raise MemoryError("Invalid Memory Address")
 
     def request_localmemory(self, memspace):
         # TODO: Validate mem in range values.

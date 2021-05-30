@@ -357,7 +357,8 @@ class CodeGenerator:
             raise IndexError(
                 "Array dimensions exceed declared dimensions of ", d)
 
-        self.quadruples.append(['VER', operand, cypher, dims[self.dim_counter][0]])
+        self.quadruples.append(
+            ['VER', operand, cypher, dims[self.dim_counter][0]])
         self.counter += 1
 
         if self.dim_counter == 0:

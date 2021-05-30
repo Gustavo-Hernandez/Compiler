@@ -2,7 +2,7 @@ program BasicTests{
     int az = 0;
 
     private class Matrix{
-        int z = 0;
+        int z = 0 + 2 + 2;
 
         func void matMul(){
             int arrA[3][3], arrB[3][3];
@@ -175,7 +175,7 @@ program BasicTests{
     }
 
     main(){
-
+        int w = 2;
     }
 }
 

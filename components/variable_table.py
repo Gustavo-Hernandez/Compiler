@@ -32,11 +32,7 @@ class VariableTable:
                         scope, self.type_var, size)
                 else:
                     dims = None
-                    # Temporal object patch
-                    if self.type_var not in ['int', 'float', 'bool', 'string']:
-                        virtualAddress = None
-                    else:
-                        virtualAddress = self.requestAddress(scope, self.type_var)
+                    virtualAddress = self.requestAddress(scope, self.type_var)
 
                 self.table[v] = {
                     'type': self.type_var,
@@ -78,17 +74,11 @@ class VariableTable:
             raise KeyError("Variable " + val + " is not defined")
 
     def requestArrayAddress(self, scope, type_var, size):
-        if scope == 'global':
-            virtual_address = MemoryManager().request_address_block(scope, type_var, size)
-        else:
-            virtual_address = MemoryManager().request_address_block('local', type_var, size)
+        virtual_address = MemoryManager().request_address_block(scope, type_var, size)
         return virtual_address
 
     def requestAddress(self, scope, type_var):
-        if scope == 'global':
-            virtual_address = MemoryManager().request_address(scope, type_var)
-        else:
-            virtual_address = MemoryManager().request_address('local', type_var)
+        virtual_address = MemoryManager().request_address(scope, type_var)
         return virtual_address
 
     def insert_cte(self, val, tp):

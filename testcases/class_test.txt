@@ -1,4 +1,5 @@
 program ClassTest {
+    int b = 2;
     public class Animal {
         int a = 2;
         func void sayHello(){
@@ -6,13 +7,18 @@ program ClassTest {
         }
     }
 
-    public class Human : Animal{
-        int b = 2;
+    public class Human {
+        int age = 2;
         func void sayHello(){
+            b = 3;
             print("Hello");
+        }
+        func void setAge(int a){
+            age = a;
         }
     }
     main(){
-        
+        Human human, human2;
+        int i = 2;
     }
 }

@@ -31,7 +31,7 @@ current_arr_id = ''
 code_gen = CodeGenerator()
 err = False
 class_dir = {}
-fns_dir = {}
+program_vars = {}
 
 
 # Grammars Definition
@@ -42,12 +42,9 @@ fns_dir = {}
 def p_program(p):
     '''program : programAux programAux1 program_2 main CLOSED_BRACKET'''
     code_gen.end_prog()
-    print(class_dir)
-    print("------------------")
-    fns_dir['program'] = fns_dir['program'].directory
-    val = fns_dir['program']['main']
+    program_vars['program'] = program_vars['program'].directory
+    val = program_vars['program']['main']
     code_gen.add_main_dir(val['position'])
-    print(global_var_table.table)
 
 
 def p_programAux(p):
@@ -55,14 +52,15 @@ def p_programAux(p):
     global var_table, current_func_dir, current_table
     current_func_dir = FunctionDirectory()
     current_func_dir.add_function(p[2], 'program', 0)
-    fns_dir['program'] = current_func_dir
-    var_table = fns_dir['program'].get_var_table()
+    program_vars['program'] = current_func_dir
+    var_table = program_vars['program'].get_var_table()
     current_table = global_var_table
 
 
 def p_programAux1(p):
     '''programAux1 : OPEN_BRACKET program_1'''
     code_gen.add_main()
+    var_tables['global'] = program_vars['program'].store_global_vars('program')
 
 
 def p_program_1(p):
@@ -75,7 +73,7 @@ def p_program_2(p):
                     | empty'''
     if not p[1]:
         global current_func_dir
-        current_func_dir = fns_dir['program']
+        current_func_dir = program_vars['program']
 
 
 # ---- END PROGRAM DEFINITION --------
@@ -85,36 +83,53 @@ def p_program_2(p):
 
 def p_class(p):
     '''class    : classAux class_1'''
-    # p[1] is visibility and id, p[2] is extension
-    class_dir[p[1][0]] = {"number": len(
-        class_dir), "visibility": p[1][1], "extension": p[2],
-        'functions': current_func_dir.directory,
-        'var_table': var_table.table}
+    # p[1] is visibility and id, p[2] is extension and class_temps
+
+    # Class size calculation
+    class_size = {}
+    class_size.update(MemoryManager().get_class_vars())
+    class_size.update(p[2][1])
+    class_address = MemoryManager().request_class_address(p[1][0], p[1][1])
+    class_dir[p[1][0]] = {"visibility": p[1][1], "extension": p[2][0],
+                          'functions': current_func_dir.directory,
+                          'var_table': var_table.table, 'size': class_size, 'address': class_address}
+
+    # Clear context
+    MemoryManager().reset_class_context()
     p[0] = p[1]
 
 
 def p_classAux(p):
     '''classAux    : visibility CLASS ID'''
-    # Pushing visibility and id value upwards
-    p[0] = [p[3], p[1]]
-    global current_func_dir, var_table, current_table
+    # Class Function Directory reset.
+    if p[3] in class_dir:
+        raise KeyError("Class " + p[3] + " has already been declared.")
+    global current_func_dir, var_table, current_table, code_gen
+    code_gen.current_scope = "class"
     current_func_dir = FunctionDirectory()
     current_func_dir.global_vartable = global_var_table
     var_table = VariableTable()
+    current_func_dir.class_vartable = var_table
     current_table = var_table
+    # Pushing visibility and id value upwards
+    p[0] = [p[3], p[1]]
 
 
 def p_class_1(p):
     '''class_1  : class_1Aux class_4 CLOSED_BRACKET'''
-    # Pushing extension value upwards
+    # Pushing extension value and class temps upwards
     p[0] = p[1]
 
 
 def p_class_1Aux(p):
     '''class_1Aux  : class_2 OPEN_BRACKET class_3'''
-    var_tables['global'] = fns_dir['program'].store_global_vars('program')
-    # Pushing extension value upwards
-    p[0] = p[1]
+    # TODO: MOVE =>
+    # Get class size
+    class_temp = MemoryManager().get_class_temps()
+    code_gen.reset_t_counter()
+    code_gen.current_scope = 'local'
+    # Pushing extension value and class temps upwards
+    p[0] = [p[1], class_temp]
 
 
 def p_class_2(p):
@@ -136,15 +151,12 @@ def p_class_2(p):
 def p_class_3(p):
     '''class_3  : statementAux class_3
                 | empty'''
-    if not p[1]:
-        code_gen.current_scope = 'module'
-        code_gen.reset_t_counter()
 
 
 def p_class_4(p):
     '''class_4  : module class_4
                 | empty'''
-
+    code_gen.current_scope = 'local'
 
 # ---- END CLASS DEFINITION ---------
 
@@ -159,8 +171,9 @@ def p_main(p):
 
 def p_mainAux(p):
     '''mainAux : MAIN'''
+    global current_table, code_gen
     current_func_dir.add_function('void', p[1], code_gen.counter)
-    global current_table
+    code_gen.current_scope = 'local'
     current_table = current_func_dir.get_var_table()
     p[0] = p[1]
 
@@ -194,6 +207,7 @@ def p_statement(p):
 def p_statementAux(p):
     '''statementAux : assignation
                     | declaration'''
+    global code_gen
     code_gen.final_solve()
 
 
@@ -267,7 +281,7 @@ def p_module_retAux(p):
     var_table.set_array(False)
     var_table.set_type(p[1])
     var_table.store_id(p[2])
-    var_table.register('global', cte_table)
+    var_table.register('class', cte_table)
     global current_table
     current_table = current_func_dir.get_var_table()
 
@@ -345,7 +359,6 @@ def p_object_call(p):
 def p_object_callAux(p):
     '''object_callAux : ID POINT ID'''
     obj = p[1]
-
     if obj in current_table.table:
         if current_table.table[obj]['type'] not in ['int', 'float', 'bool', 'string']:
             class_name = current_table.table[obj]['type']
@@ -568,14 +581,12 @@ def p_object_declaration_1(p):
 
 def p_object_declarationAux(p):
     '''object_declarationAux : ID ID'''
-    if p[1] not in ['int', 'float', 'bool', 'string'] and p[1] in class_dir:
+    if p[1] in class_dir:
         current_table.set_type(p[1])
     else:
         raise TypeError("Class " + p[1] + " does not exist")
-
     current_table.store_id(p[2])
     current_table.set_array(False)
-
 
 # ---- END OBJECT_DECLARATION DEFINITION -------
 
@@ -999,13 +1010,23 @@ def p_id_arrID(p):
     p[0] = p[1]
     global current_arr, current_arr_id
 
-    if p[1] not in current_table.table and current_table != var_table:
-        if var_table.get_is_array(p[1]):
-            current_arr = var_table.table[p[1]]
-            current_arr_id = p[1]
+    if p[1] not in current_table.table and current_table != var_table and current_table != global_var_table:
+        if p[1] not in var_table.table:
+            if global_var_table.get_is_array(p[1]):
+                current_arr = global_var_table.table[p[1]]
+                current_arr_id = p[1]
+            else:
+                code_gen.types.push(global_var_table.get_type(p[1]))
+                code_gen.addOperand(
+                    global_var_table.table[p[1]]['virtual_address'])
         else:
-            code_gen.types.push(var_table.get_type(p[1]))
-            code_gen.addOperand(var_table.table[p[1]]['virtual_address'])
+            if var_table.get_is_array(p[1]):
+                current_arr = var_table.table[p[1]]
+                current_arr_id = p[1]
+            else:
+                code_gen.types.push(var_table.get_type(p[1]))
+                code_gen.addOperand(
+                    var_table.table[p[1]]['virtual_address'])
     else:
         if current_table.get_is_array(p[1]):
             current_arr = current_table.table[p[1]]
@@ -1046,34 +1067,56 @@ def export_quads():
     return quads
 
 
+def export_classes_size():
+    size_export = ""
+    for key in class_dir:
+        size_export += key
+        for dim_size in class_dir[key]['size']:
+            size_export += " " + str(class_dir[key]['size'][dim_size])
+        size_export += "\n"
+    for var in program_vars['program']:
+        size_export += var
+        print(var, program_vars['program'][var]['size'])
+        for dim_size in program_vars['program'][var]['size']:
+            size_export += " " + \
+                str(program_vars['program'][var]['size'][dim_size])
+        size_export += "\n"
+    return size_export
+
+
 def export_functions_size():
     size_export = ""
-    for func in current_func_dir.directory:
-        rc = " "
-        for dim_size in current_func_dir.directory[func]['size']:
-            rc += str(current_func_dir.directory[func]['size'][dim_size]) + " "
-        size_export += func + rc + "\n"
+    for key in class_dir:
+        for fn in class_dir[key]['functions']:
+            rc = " "
+            for dim_size in class_dir[key]['functions'][fn]['size']:
+                rc += str(class_dir[key]['functions'][fn]
+                          ['size'][dim_size]) + " "
+            size_export += key + " " + fn + rc + "\n"
     return size_export
 
 
 def export_functions_signature():
     signatures_export = ""
-    for func in current_func_dir.directory:
-        rc = " " + current_func_dir.directory[func]['return_type'] + \
-             " " + str(current_func_dir.directory[func]['position']) + " "
-        for param in current_func_dir.directory[func]['params']:
-            rc += str(current_func_dir.directory[func]
-                      ['params'][param]['type']) + " "
-        signatures_export += func + rc + "\n"
+    for key in class_dir:
+        for fn in class_dir[key]['functions']:
+            rc = " " + class_dir[key]['functions'][fn]['return_type'] + \
+                " " + str(class_dir[key]['functions'][fn]['position']) + " "
+            for param in class_dir[key]['functions'][fn]['params']:
+                rc += str(class_dir[key]['functions'][fn]
+                          ['params'][param]['type']) + " "
+            signatures_export += key + " " + fn + rc + "\n"
     return signatures_export
 
 
 def export_ret_functions_address():
     addresses = ""
-    for func in current_func_dir.directory:
-        if func in var_table.table:
-            addresses += func + " " + \
-                str(var_table.table[func]['virtual_address']) + "\n"
+    for key in class_dir:
+        for fn in class_dir[key]['functions']:
+            if fn in class_dir[key]['var_table']:
+                addresses += key + " " + fn + " " + \
+                    str(class_dir[key]['var_table']
+                        [fn]['virtual_address']) + "\n"
     return addresses
 
 
@@ -1089,8 +1132,8 @@ def generateObj():
     dir_path = 'output'
     if not os.path.isdir(dir_path):
         os.makedirs(dir_path)
-    output = export_quads() + "\n" + export_functions_signature() + \
-        "\n" + export_ret_functions_address() + "\n" + export_functions_size() + \
+    output = export_quads() + "\n" + export_functions_signature() + "\n" + \
+        export_ret_functions_address() + "\n" + export_functions_size() + "\n" + export_classes_size() + \
         "\n" + export_constants()
     filewriter = open(dir_path + "/out.obj", 'w')
     filewriter.write(output)
@@ -1104,5 +1147,5 @@ if len(sys.argv) > 1:
     # Parse the file content.
     result = parser.parse(file_content)
     if not err:
+        print(program_vars)
         generateObj()
-        print(fns_dir)

@@ -4,7 +4,7 @@ program BasicTests{
     public class Animal{
         int legs;
 
-        func void setLegs(int l){
+        func void setLegs(int l, int a, int b){
             legs = l;
         }
 
@@ -43,7 +43,7 @@ program BasicTests{
 
         percy.mew();
 
-        int j = frodo.getLegs() + 7 + 2;
+        int j =  0 + 7 + 2;
 
     }
 }

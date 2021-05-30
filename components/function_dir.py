@@ -9,22 +9,27 @@ class FunctionDirectory:
         self.var_table = None
         self.params = {}
         self.global_vartable = VariableTable()
+        self.class_vartable = VariableTable()
 
     def add_function(self, return_type, id, pos):
         if not id in self.directory:
-            if not id in self.global_vartable.table:
-                self.var_table = VariableTable()
-                if id == 'program':
-                    self.global_vartable = self.var_table
-                self.directory[id] = {
-                    'return_type': return_type, 'params': self.params, 'position': pos}
-                for param in self.params:
-                    type_atomic = self.params[param]['type']
-                    address = self.params[param]['virtual_address']
-                    self.var_table.table[param] = {
-                        'type': type_atomic, 'virtual_address': address, 'is_array': False}
+            if not id in self.class_vartable.table:
+                if not id in self.global_vartable.table:
+                    self.var_table = VariableTable()
+                    if id == 'program':
+                        self.global_vartable = self.var_table
+                    self.directory[id] = {
+                        'return_type': return_type, 'params': self.params, 'position': pos}
+                    for param in self.params:
+                        type_atomic = self.params[param]['type']
+                        address = self.params[param]['virtual_address']
+                        self.var_table.table[param] = {
+                            'type': type_atomic, 'virtual_address': address, 'is_array': False}
+                else:
+                    raise KeyError("Duplicate identifier: " + id)
             else:
-                raise KeyError("Duplicate identifier: " + id)
+                raise KeyError(
+                    "Duplicate identifier, declared in class: " + id)
         else:
             raise KeyError("Duplicate function: " + id)
 
