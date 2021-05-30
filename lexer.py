@@ -104,6 +104,21 @@ def t_EQUALITY(t):
     r'=='
     return t
 
+
+# Regular Expression for handling comments
+
+
+def t_COMMENT(t):
+    r'[/][*][^*]*[*]+([^*/][^*]*[*]+)*[/]'
+    pass
+
+
+def t_UNFINISHED_COMMENT(t):
+    r'[/][*]'
+    print("Fatal Error, unterminated comment")
+    sys.exit()
+
+
 # Rule definition to track the amount of lines.
 
 
