@@ -4,6 +4,7 @@ from components.mem_manager import MemoryManager
 from components.stack import Stack
 from vm.file_loader import FileLoader
 
+# Declaration for global manipulation variables
 quad_pointer = 0
 const_table = None
 global_memory = None
@@ -24,6 +25,7 @@ memory_stack = Stack()
 quad_pointer_stack = Stack()
 
 
+# Function get values makes use of an address to search for its value on all available memories
 def get_value(address):
     global const_table, global_memory, memory_stack, class_vars
     current_memory = memory_stack.top()
@@ -43,6 +45,8 @@ def get_value(address):
     return value
 
 
+# Function get compound uses the address of an object and a variable to obtain the value of a specific variable in
+# an existing object
 def get_compound(obj, address):
     global const_table, global_memory, memory_stack, class_vars
     current_memory = memory_stack.top()
@@ -58,6 +62,7 @@ def get_compound(obj, address):
     return value
 
 
+# Function store value takes an address and a value and overwrites the value in said address with the new input value
 def store_value(value, address):
     global const_table, global_memory, memory_stack, class_vars
     current_memory = memory_stack.top()
@@ -71,11 +76,13 @@ def store_value(value, address):
         raise RuntimeError("Invalid Address: " + str(address) + " at quad ", quad_pointer)
 
 
+# Function appends object memory to current memory
 def generate_object(memory, address):
     current_memory = memory_stack.top()
     current_memory[address] = memory
 
 
+# Function store param is used to store values on a function variable
 def store_param(value, address):
     global idle_memory
     if address in idle_memory:
@@ -84,6 +91,8 @@ def store_param(value, address):
         raise RuntimeError("Invalid Address: " + str(address) + " at quad ", quad_pointer)
 
 
+# Function takes a compound address like '40000.2020' and separates it to send to get_compound
+# however if the address is not compound the value is sent to get_value instead
 def process_object_attribute(address):
     if type(address) == str:
         parts = address.split('.')
@@ -92,6 +101,7 @@ def process_object_attribute(address):
         return get_value(address)
 
 
+# Function contains a large series of elif's in order to process all the possible instructions for a quadruple
 def process_quad(param_quad):
     global quad_pointer, modules_addresses, call_stack, idle_memory, object_subroutines, \
         class_type, class_address, class_vars, idle_object, class_vars_stack
@@ -280,6 +290,8 @@ def process_quad(param_quad):
         raise RuntimeError("Unimplemented Action Code: " + quad[0])
 
 
+# Virtual machine reads file out.obj and stores its information, then begins the cycle of processing quadruples
+# until the current quadruple contains de instruction 'END'
 def main():
     global const_table, global_memory, memory_stack, funcs, function_memories, \
         modules_addresses, class_memories, class_signatures

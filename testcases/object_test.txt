@@ -1,5 +1,9 @@
 program BasicTests{
-    public class Animal{
+    interface Legs{
+        func int getLegs();
+    }
+
+    public class Animal implements Legs{
         int legs = 0;
 
         func int getLegs(){
