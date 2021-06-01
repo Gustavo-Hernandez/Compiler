@@ -98,7 +98,7 @@ def t_ID(t):
         t.type = reserved[t.value]
     return t
 
-# EQuality token must be defined here in order to prevent
+# Equality token must be defined here in order to prevent
 # EQUALITY to be classified as two EQUALS
 
 

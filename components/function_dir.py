@@ -1,3 +1,9 @@
+# ------------------------------------------------------------
+# function_dir.py
+# A01364749 Gustavo Hernandez Sanchez
+# A01364701 Luis Miguel Maawad Hinojosa
+# ------------------------------------------------------------
+
 from components.mem_manager import MemoryManager
 from .variable_table import VariableTable  # pylint: disable=relative-beyond-top-level
 

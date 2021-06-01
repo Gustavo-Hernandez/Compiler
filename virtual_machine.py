@@ -141,6 +141,9 @@ def process_quad(param_quad):
     elif quad[0] == "/":
         izq = process_object_attribute(quad[1])
         der = process_object_attribute(quad[2])
+        if der == 0:
+            print("[ERROR] Can not divide by 0")
+            sys.exit()
         result = izq / der
         store_value(result, quad[3])
         quad_pointer += 1

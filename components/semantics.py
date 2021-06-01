@@ -1,3 +1,9 @@
+# ------------------------------------------------------------
+# semantics.py
+# A01364749 Gustavo Hernandez Sanchez
+# A01364701 Luis Miguel Maawad Hinojosa
+# ------------------------------------------------------------
+
 import os
 import re
 from components.variable_table import VariableTable

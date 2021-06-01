@@ -2,7 +2,7 @@ program BasicTests{
     int az = 10;
 
     /* Class for handling arrays and matrices */
-    private class Matrix{
+    blocked class Matrix{
         int z = 0 + 2 + 2;
 
         func void matMul(){
@@ -128,7 +128,7 @@ program BasicTests{
 
     /* Class for handling N term in fibonacci sequence,
         using linear and recursive approaches */
-    private class Fibonacci{
+    blocked class Fibonacci{
         int omega = 0;
 
         func int fibLinear(int a){
@@ -179,7 +179,7 @@ program BasicTests{
 
     /* Class for factorial calculation,
         using linear and recursive approaches */
-    private class Factorial{
+    blocked class Factorial{
         func int factorialLinear(int a){
             int res = 1;
 

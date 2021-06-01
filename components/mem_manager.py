@@ -1,3 +1,9 @@
+# ------------------------------------------------------------
+# mem_manager.py
+# A01364749 Gustavo Hernandez Sanchez
+# A01364701 Luis Miguel Maawad Hinojosa
+# ------------------------------------------------------------
+
 class MemoryManagerMeta(type):
     _instances = {}
 

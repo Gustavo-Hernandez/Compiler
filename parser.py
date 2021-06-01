@@ -9,9 +9,6 @@ import sys
 
 # Get the token map from the lexer.  This is required.
 from lexer import tokens
-from components.variable_table import VariableTable
-from components.function_dir import FunctionDirectory
-from components.code_gen import CodeGenerator
 from components.semantics import Semantics
 
 semantics = Semantics()
