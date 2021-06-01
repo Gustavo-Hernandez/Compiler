@@ -104,9 +104,9 @@ class Semantics:
         if id_extended_class not in self.class_dir:
             raise KeyError(
                 "Can not extend from non existent class: " + id_extended_class)
-        elif self.class_dir[id_extended_class]['visibility'] == 'private':
+        elif self.class_dir[id_extended_class]['visibility'] == 'blocked':
             raise KeyError(
-                "Can not extend from private class: " + id_extended_class)
+                "Can not extend from blocked class: " + id_extended_class)
         else:
             self.current_func_dir.directory = self.class_dir[id_extended_class]['functions'].copy(
             )

@@ -92,11 +92,11 @@ class MemoryManager(metaclass=MemoryManagerMeta):
         self.class_bases = {}
         self.object_counter = {}
         self.class_map = {
-            'private': 30000,
+            'blocked': 30000,
             'public': 40000,
         }
         self.class_counter = {
-            'private': 0,
+            'blocked': 0,
             'public': 0,
         }
         self.class_offset = 100

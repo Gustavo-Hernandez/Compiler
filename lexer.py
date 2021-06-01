@@ -36,7 +36,7 @@ tokens = (
 reserved = {
     'class': 'CLASS',
     'public': 'PUBLIC',
-    'private': 'PRIVATE',
+    'blocked': 'BLOCKED',
     'main': 'MAIN',
     'func': 'FUNC',
     'void': 'VOID',
@@ -63,8 +63,8 @@ reserved = {
 tokens += tuple(reserved.values())
 
 # Regular expression rules for simple tokens
-t_CTE_I = r'[0-9][0-9]*'
-t_CTE_F = r'[0-9]+\.[0-9]* '
+t_CTE_I = r'-?[0-9][0-9]*'
+t_CTE_F = r'-?[0-9]+\.[0-9]* '
 t_CTE_S = r'\"([^\\\n]|(\\.))*?\"'
 t_COLON = r'\:'
 t_POINT = r'\.'

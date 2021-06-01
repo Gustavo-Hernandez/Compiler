@@ -3,8 +3,8 @@ import re
 
 class FileLoader:
     def __init__(self, filepath):
-        self.__float_regex = re.compile(r'^\d*[.,]?\d*$')
-        self.__int_regex = re.compile(r'^[0-9]+$')
+        self.__float_regex = re.compile(r'^-?\d*[.,]?\d*$')
+        self.__int_regex = re.compile(r'^-?[0-9]+$')
         self.__quads = []
         self.__functions = {}
         self.__ret_module_address = {}

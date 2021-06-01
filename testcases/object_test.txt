@@ -1,4 +1,4 @@
-program BasicTests{
+program ObjectTest{
     interface Legs{
         func int getLegs();
     }
@@ -47,7 +47,6 @@ program BasicTests{
     }
 
     main(){
-        int i;
         Zoo zacango;
 
         zacango.printAnimals();

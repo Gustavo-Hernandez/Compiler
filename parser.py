@@ -183,7 +183,7 @@ def p_implementation(p):
 
 def p_visibility(p):
     '''visibility   : PUBLIC
-                    | PRIVATE'''
+                    | BLOCKED'''
     p[0] = p[1]
 
 
