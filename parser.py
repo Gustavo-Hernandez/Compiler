@@ -6,58 +6,29 @@
 from components.mem_manager import MemoryManager
 import ply.yacc as yacc
 import sys
-import re
-import csv
-import os
 
 # Get the token map from the lexer.  This is required.
 from lexer import tokens
 from components.variable_table import VariableTable
 from components.function_dir import FunctionDirectory
 from components.code_gen import CodeGenerator
+from components.semantics import Semantics
 
-var_tables = {}
-cte_table = VariableTable()
-global_var_table = VariableTable()
-var_table = None
-current_func_dir = None
-current_table = None
-called_function = None
-current_function = None
-current_function_types = None
-current_function_ret = None
-current_arr = None
-object_queue = []
-current_arr_id = ''
-code_gen = CodeGenerator()
+semantics = Semantics()
 err = False
-class_dir = {}
-program_vars = {}
-
-interfaces = {}
-current_interface = {}
 
 # Grammars Definition
-
 # ---- BEGIN PROGRAM DEFINITION --------
 
 
 def p_program(p):
     '''program : programAux programAux1 program_3 main CLOSED_BRACKET'''
-    code_gen.end_prog()
-    program_vars['program'] = program_vars['program'].directory
-    val = program_vars['program']['main']
-    code_gen.add_main_dir(val['position'])
+    semantics.end_program()
 
 
 def p_programAux(p):
     '''programAux : PROGRAM ID'''
-    global var_table, current_func_dir, current_table
-    current_func_dir = FunctionDirectory()
-    current_func_dir.add_function(p[2], 'program', 0)
-    program_vars['program'] = current_func_dir
-    var_table = program_vars['program'].get_var_table()
-    current_table = global_var_table
+    semantics.init_program(p[2])
 
 
 def p_programAux1(p):
@@ -66,9 +37,7 @@ def p_programAux1(p):
 
 def p_programAux1_1(p):
     '''programAux1_1 : OPEN_BRACKET program_1'''
-    code_gen.add_main()
-    var_tables['global'] = program_vars['program'].store_global_vars('program')
-    code_gen.current_scope = "interfaces"
+    semantics.store_global_statements()
 
 
 def p_program_1(p):
@@ -85,8 +54,7 @@ def p_program_3(p):
     '''program_3    : class program_3
                     | empty'''
     if not p[1]:
-        global current_func_dir
-        current_func_dir = program_vars['program']
+        semantics.set_current_function_directory_as_global()
 
 
 # ---- END PROGRAM DEFINITION --------
@@ -95,14 +63,12 @@ def p_program_3(p):
 # ---- BEGIN INTERFACE DEFINITION ---------
 def p_interface(p):
     '''interface    :   interfaceAux module_signature CLOSED_BRACKET'''
-    global interfaces, current_interface
-    interfaces[p[1]] = current_interface.directory
+    semantics.store_interface(p[1])
 
 
 def p_interfaceAux(p):
     '''interfaceAux : INTERFACE ID OPEN_BRACKET'''
-    global current_interface
-    current_interface = FunctionDirectory()
+    semantics.init_current_interface()
     p[0] = p[2]
 
 
@@ -122,53 +88,23 @@ def p_module_signatureAux(p):
 
 def p_class(p):
     '''class    : classAux class_1'''
-    # p[1] is visibility and id, p[2] is extension and class_temps
-
-    # Class size calculation
-    class_size = {}
-    class_size.update(MemoryManager().get_class_vars())
-    class_size.update(p[2][2])
-
-    class_address = MemoryManager().request_class_address(p[1][0], p[1][1])
-    exe = p[2][1] + [p[1][2]]
-    class_dir[p[1][0]] = {"visibility": p[1][1], "extension": p[2][0],
-                          'functions': current_func_dir.directory,
-                          'var_table': var_table.table, 'size': class_size,
-                          'address': class_address, 'execution': exe}
-    # Validate class implementation
-    if p[2][3]:
-        for fn in interfaces[p[2][3]]:
-            if fn in current_func_dir.directory:
-                assert interfaces[p[2][3]][fn]['return_type'] == current_func_dir.directory[
-                    fn]['return_type'], "Implemented function " + fn + " has a different return type"
-                assert interfaces[p[2][3]][fn]['params'] == current_func_dir.directory[
-                    fn]['params'], "Implemented function " + fn + " has a different parameters"
-            else:
-                raise ValueError(
-                    "Class " + p[1][0] + " does not implement '" + fn + "' function from interface: " + p[2][3])
-
-    # Clear context
-    MemoryManager().reset_class_context()
+    # p[1][0] is id
+    # p[1][1] is visibility
+    # p[2][0] is extension
+    # p[2][2] class_temporals
+    # [2][3] is implemented_id
+    # p[1][2] is codegen.counter
+    # p[2][1] is exe
+    semantics.store_class(p[1][0], p[1][1], p[2][0],
+                          p[2][2], p[2][3], p[1][2], p[2][1])
     p[0] = p[1]
 
 
 def p_classAux(p):
     '''classAux    : visibility CLASS ID'''
-    # Class Function Directory reset.
-    if p[3] in class_dir:
-        raise KeyError("Class " + p[3] + " has already been declared.")
-    if p[3] in interfaces:
-        raise KeyError("Identifier " +
-                       p[3] + " has already been declared as an interface.")
-    global current_func_dir, var_table, current_table, code_gen
-    code_gen.current_scope = "class"
-    current_func_dir = FunctionDirectory()
-    current_func_dir.global_vartable = global_var_table
-    var_table = VariableTable()
-    current_func_dir.class_vartable = var_table
-    current_table = var_table
+    semantics.init_class(p[3])
     # Pushing visibility and id value upwards
-    p[0] = [p[3], p[1], code_gen.counter]
+    p[0] = [p[3], p[1], semantics.code_gen.counter]
 
 
 def p_class_1(p):
@@ -179,11 +115,8 @@ def p_class_1(p):
 
 def p_class_1Aux(p):
     '''class_1Aux  : class_2 class_3 OPEN_BRACKET class_4'''
-    # Get class size
     class_temp = MemoryManager().get_class_temps()
-    code_gen.reset_t_counter()
-    code_gen.current_scope = 'local'
-    code_gen.end_class()
+    semantics.store_class_temporals()
     # Pushing extension value, class temps and implementation upwards
     p[0] = p[1] + [class_temp] + [p[2]]
 
@@ -193,18 +126,7 @@ def p_class_2(p):
                 | empty'''
     # Pushing extension value upwards
     if p[1]:
-        global class_dir, current_func_dir
-        if p[1] not in class_dir:
-            raise KeyError("Can not extend from non existent class: " + p[1])
-        elif class_dir[p[1]]['visibility'] == 'private':
-            raise KeyError("Can not extend from private class: " + p[1])
-        else:
-            current_func_dir.directory = class_dir[p[1]]['functions'].copy()
-            var_table.table = class_dir[p[1]]['var_table'].copy()
-            exe = class_dir[p[1]]['execution'].copy()
-            size = class_dir[p[1]]['size'].copy()
-            MemoryManager().class_counter_offset(
-                size['c_int'], size['c_float'], size['c_string'], size['c_bool'])
+        exe = semantics.handle_class_extension(p[1])
     else:
         exe = []
     p[0] = [p[1], exe]
@@ -225,7 +147,7 @@ def p_class_4(p):
 def p_class_5(p):
     '''class_5  : module class_5
                 | empty'''
-    code_gen.current_scope = 'local'
+    semantics.set_current_scope('local')
 
 
 # ---- END CLASS DEFINITION ---------
@@ -235,16 +157,12 @@ def p_class_5(p):
 
 def p_main(p):
     '''main : mainAux OPEN_PARENTHESIS CLOSED_PARENTHESIS block'''
-    var_tables['main'] = current_func_dir.delete_var_table(p[1])
-    code_gen.reset_t_counter()
+    semantics.end_main()
 
 
 def p_mainAux(p):
     '''mainAux : MAIN'''
-    global current_table, code_gen
-    current_func_dir.add_function('void', p[1], code_gen.counter)
-    code_gen.current_scope = 'local'
-    current_table = current_func_dir.get_var_table()
+    semantics.init_main()
     p[0] = p[1]
 
 
@@ -287,8 +205,7 @@ def p_statement(p):
 def p_statementAux(p):
     '''statementAux : assignation
                     | declaration'''
-    global code_gen
-    code_gen.final_solve()
+    semantics.solve_statement()
 
 
 # ---- END STATEMENT DEFINITION ---------
@@ -312,16 +229,13 @@ def p_block_1(p):
 
 def p_module(p):
     '''module   : FUNC module_1'''
-    code_gen.end_func()
+    semantics.end_function()
 
 
 def p_module_1(p):
     '''module_1 : module_ret
                 | module_void'''
-    # Release Memory and Store clean vartable
-    var_tables[p[1]] = current_func_dir.delete_var_table(p[1])
-    # Reset temporal Counters
-    code_gen.reset_t_counter()
+    semantics.module_vartable_export(p[1])
 
 
 # ---- END MODULE DEFINITION ---------
@@ -337,14 +251,7 @@ def p_module_void(p):
 def p_module_voidAux(p):
     '''module_voidAux  : VOID ID params'''
     p[0] = p[2]
-    if code_gen.current_scope != 'interfaces':
-        current_func_dir.add_function(p[1], p[2], code_gen.counter)
-        global current_table
-        current_table = current_func_dir.get_var_table()
-    else:
-        global current_interface
-        current_interface.add_function(p[1], p[2], code_gen.counter)
-        current_interface.params = {}
+    semantics.process_void_module_declaration(p[2])
 
 # ---- END MODULE_VOID DEFINITION ---------
 
@@ -353,26 +260,14 @@ def p_module_voidAux(p):
 
 def p_module_ret(p):
     '''module_ret  : module_retAux OPEN_BRACKET module_ret_1 RETURN expression SEMICOLON CLOSED_BRACKET'''
-    code_gen.final_solve()
-    code_gen.add_return(p[1][0])
+    semantics.end_return_module(p[1][0])
     p[0] = p[1][1]
 
 
 def p_module_retAux(p):
     '''module_retAux  : type_atomic ID params'''
     p[0] = [p[1], p[2]]
-    if code_gen.current_scope != 'interfaces':
-        current_func_dir.add_function(p[1], p[2], code_gen.counter)
-        var_table.set_array(False)
-        var_table.set_type(p[1])
-        var_table.store_id(p[2])
-        var_table.register('class', cte_table)
-        global current_table
-        current_table = current_func_dir.get_var_table()
-    else:
-        global current_interface
-        current_interface.add_function(p[1], p[2], code_gen.counter)
-        current_interface.params = {}
+    semantics.process_module_ret_declaration(p[1], p[2])
 
 
 def p_module_ret_1(p):
@@ -391,11 +286,7 @@ def p_params(p):
 
 def p_paramsAux(p):
     '''paramsAux : type_atomic ID'''
-    if code_gen.current_scope != 'interfaces':
-        current_func_dir.store_param(p[1], p[2])
-    else:
-        global current_interface
-        current_interface.store_param(p[1], p[2])
+    semantics.process_param(p[1], p[2])
 
 
 def p_params_1(p):
@@ -430,67 +321,13 @@ def p_void_object_call(p):
 
 def p_object_call(p):
     '''object_call : object_callAux object_call_1'''
-    global current_function, current_function_types, current_function_ret
-    if current_function:
-        tp = len(current_function_types)
-        code_gen.validate_params(tp)
-        code_gen.go_sub(current_function)
-        code_gen.end_call()
-        ret_type = current_function_ret
-        if ret_type != "void":
-            mem_dir = class_dir[p[1][0]
-                                ]['var_table'][current_function]['virtual_address']
-            p[0] = code_gen.call_return(
-                str(p[1][1]) + '.' + str(mem_dir), ret_type)
-            code_gen.addOperand(p[0])
-        else:
-            p[0] = current_function_ret
-        current_function = None
-        current_function_types = None
-        current_function_ret = None
-        code_gen.operators.pop()
-    else:
-        p[0] = 'attribute'
+    p[0] = semantics.process_object_call(p[1][0], p[1][1])
 
 
 def p_object_callAux(p):
     '''object_callAux : ID POINT ID'''
-    obj = p[1]
-    if obj in current_table.table:
-        if current_table.table[obj]['type'] not in ['int', 'float', 'bool', 'string']:
-            class_name = current_table.table[obj]['type']
-            memory = current_table.table[obj]['virtual_address']
-        else:
-            raise TypeError("Variable " + obj + " is not an object")
-    elif obj in var_table.table:
-        if var_table.table[obj]['type'] not in ['int', 'float', 'bool', 'string']:
-            class_name = var_table.table[obj]['type']
-            memory = var_table.table[obj]['virtual_address']
-        else:
-            raise TypeError("Variable " + obj + " is not an object")
-    else:
-        raise NameError("Unknown variable " + obj)
-
-    element = p[3]
-    v_list = class_dir[class_name]['var_table']
-    f_list = class_dir[class_name]['functions']
-
-    p[0] = [class_name, memory]
-
-    if element in f_list:
-        global current_function, current_function_types, current_function_ret
-        current_function = element
-        code_gen.add_mem(memory, class_name)
-        current_function_types = list(f_list[element]['params'].values())
-        current_function_ret = f_list[element]['return_type']
-        code_gen.generate_era(element)
-    elif element in v_list:
-        code_gen.types.push(v_list[element]['type'])
-        code_gen.addOperand(str(memory) + '.' +
-                            str(v_list[element]['virtual_address']))
-    else:
-        raise NameError(
-            class_name + " objects have no attribute or method " + element)
+    class_name, address = semantics.validate_object_call(p[1], p[3])
+    p[0] = [class_name, address]
 
 
 def p_object_call_2(p):
@@ -500,8 +337,7 @@ def p_object_call_2(p):
 
 def p_object_callAux2(p):
     '''object_callAux2 : OPEN_PARENTHESIS'''
-    if not current_function:
-        raise TypeError("Object attribute is not function")
+    semantics.validate_class_function_call()
 
 
 def p_object_call_3(p):
@@ -516,48 +352,18 @@ def p_object_call_4(p):
 
 def p_object_callAux1(p):
     '''object_callAux1 : expression'''
-    code_gen.param_solve()
-    tp = current_function_types
-    if len(tp) > code_gen.par_counter:
-        code_gen.param(tp[code_gen.par_counter]['type'],
-                       tp[code_gen.par_counter]['virtual_address'])
-    else:
-        raise TypeError(
-            "Function parameters exceed expected parameters")
+    semantics.validate_function_params()
 
 
 def p_func_call(p):
     '''func_call : func_call_aux OPEN_PARENTHESIS func_call_1 CLOSED_PARENTHESIS'''
-    global current_function, current_function_types, current_function_ret
-    tp = len(current_function_types)
-    code_gen.validate_params(tp)
-    code_gen.go_sub(current_function)
-    ret_type = current_function_ret
-    if ret_type != "void":
-        mem_dir = var_table.table[current_function]['virtual_address']
-        p[0] = code_gen.call_return(mem_dir, ret_type)
-        code_gen.addOperand(p[0])
-    else:
-        p[0] = current_function_ret
-    current_function = None
-    current_function_types = None
-    current_function_ret = None
-    code_gen.operators.pop()
+    p[0] = semantics.end_function_call()
 
 
 def p_func_call_aux(p):
     '''func_call_aux : ID'''
+    semantics.validate_function_existance(p[1])
     p[0] = p[1]
-    if p[1] in current_func_dir.directory:
-        code_gen.generate_era(p[1])
-        global current_function, current_function_types, current_function_ret
-        current_function = p[1]
-        current_function_types = list(
-            current_func_dir.directory[current_function]['params'].values())
-        current_function_ret = current_func_dir.directory[current_function]['return_type']
-    else:
-        raise NameError(
-            "Function call to undefined function: " + p[1])
 
 
 def p_func_call_1(p):
@@ -572,14 +378,7 @@ def p_func_call_2(p):
 
 def p_func_call_aux_2(p):
     '''func_call_aux_2 : expression'''
-    code_gen.param_solve()
-    tp = current_function_types
-    if len(tp) > code_gen.par_counter:
-        code_gen.param(tp[code_gen.par_counter]['type'],
-                       tp[code_gen.par_counter]['virtual_address'])
-    else:
-        raise TypeError(
-            "Function parameters exceed expected parameters")
+    semantics.validate_function_params()
 
 
 def p_void_call(p):
@@ -599,7 +398,7 @@ def p_assignation(p):
 
 def p_assignationAux(p):
     '''assignationAux : id_arr_var EQUALS'''
-    code_gen.addOperator(p[2])
+    semantics.add_operator(p[2])
 
 
 def p_assignation_1(p):
@@ -616,12 +415,7 @@ def p_assignation_1(p):
 def p_declaration(p):
     '''declaration  : type_atomic declaration_1 SEMICOLON
                     | object_declaration'''
-    tp = current_table.type_var
-    current_table.register(code_gen.current_scope, cte_table)
-    global object_queue
-    for obj in object_queue:
-        code_gen.add_object(tp, current_table.table[obj]['virtual_address'])
-    object_queue = []
+    semantics.process_declaration()
 
 
 def p_declaration_1(p):
@@ -632,30 +426,15 @@ def p_declaration_1(p):
 def p_declaration_1Aux(p):
     '''declaration_1Aux    : id_arr'''
     if '[' in p[1]:
-        elm = []
-        for e in re.split("\[(.*?)\]", p[1]):
-            if e != '':
-                elm.append(e)
-        current_table.store_id(elm[0])
-        dims = []
-        for i in range(1, len(elm)):
-            dims.append(int(elm[i]))
-        current_table.set_array(True)
-        current_table.set_dims(dims)
+        semantics.process_id_array(p[1])
     else:
-        current_table.store_id(p[1])
-        current_table.set_array(False)
+        semantics.register_id(p[1])
         p[0] = p[1]
 
 
 def p_declaration_1Aux2(p):
     '''declaration_1Aux2    : ID EQUALS'''
-    current_table.store_id(p[1])
-    current_table.set_array(False)
-    code_gen.operators.push(p[2])
-    current_table.register(code_gen.current_scope, cte_table)
-    code_gen.types.push(current_table.table[p[1]]['type'])
-    code_gen.addOperand(current_table.table[p[1]]['virtual_address'])
+    semantics.process_initialized_declaration(p[1], p[2])
 
 
 def p_declaration_2(p):
@@ -675,26 +454,19 @@ def p_declaration_3(p):
 
 def p_object_declaration(p):
     '''object_declaration : object_declarationAux object_declaration_1 SEMICOLON'''
-    global object_queue
-    object_queue = current_table.queue
+    semantics.enqueue_object()
 
 
 def p_object_declaration_1(p):
     '''object_declaration_1 : COMMA ID object_declaration_1
                             | empty'''
     if len(p) > 2:
-        current_table.store_id(p[2])
-        current_table.set_array(False)
+        semantics.register_id(p[2])
 
 
 def p_object_declarationAux(p):
     '''object_declarationAux : ID ID'''
-    if p[1] in class_dir:
-        current_table.set_type(p[1])
-    else:
-        raise TypeError("Class " + p[1] + " does not exist")
-    current_table.store_id(p[2])
-    current_table.set_array(False)
+    semantics.validate_object_declaration(p[1], p[2])
 
 
 # ---- END OBJECT_DECLARATION DEFINITION -------
@@ -754,12 +526,12 @@ def p_array_ind_1(p):
 
 def p_printing(p):
     '''printing : printingAux SEMICOLON'''
-    code_gen.printing()
+    semantics.end_printing_statement()
 
 
 def p_printingAux(p):
     '''printingAux : PRINT OPEN_PARENTHESIS expression CLOSED_PARENTHESIS'''
-    code_gen.final_solve()
+    semantics.solve_statement()
 
 
 # ---- END PRINTING DEFINITION ---------
@@ -769,7 +541,7 @@ def p_printingAux(p):
 
 def p_reading(p):
     '''reading : READ OPEN_PARENTHESIS id_arr_var CLOSED_PARENTHESIS SEMICOLON'''
-    code_gen.reading()
+    semantics.end_reading_statement()
 
 
 # ---- END READING DEFINITION ---------
@@ -779,13 +551,12 @@ def p_reading(p):
 
 def p_condition(p):
     '''condition : conditionAux block condition_1'''
-    code_gen.condition_2()
+    semantics.end_if_statement()
 
 
 def p_conditionAux(p):
     '''conditionAux : IF OPEN_PARENTHESIS expression CLOSED_PARENTHESIS'''
-    code_gen.final_solve()
-    code_gen.condition_1()
+    semantics.validate_if_statement()
 
 
 def p_condition_1(p):
@@ -795,7 +566,7 @@ def p_condition_1(p):
 
 def p_condition_1Aux(p):
     '''condition_1Aux : ELSE'''
-    code_gen.condition_3()
+    semantics.process_else_block()
 
 
 # ---- END PRINTING DEFINITION ---------
@@ -805,18 +576,17 @@ def p_condition_1Aux(p):
 
 def p_loop(p):
     '''loop : loopAux2 block'''
-    code_gen.loop_3()
+    semantics.end_loop()
 
 
 def p_loopAux(p):
     '''loopAux : LOOP'''
-    code_gen.loop_1()
+    semantics.init_loop()
 
 
 def p_loopAux2(p):
     '''loopAux2 : loopAux OPEN_PARENTHESIS expression CLOSED_PARENTHESIS'''
-    code_gen.final_solve()
-    code_gen.loop_2()
+    semantics.validate_loop()
 
 
 # ---- END LOOP DEFINITION ---------
@@ -843,7 +613,7 @@ def p_expression_2(p):
     '''expression_2 : AND
                     | OR'''
     p[0] = p[1]
-    code_gen.addOperator_4(p[0])
+    semantics.add_operator_and_or(p[1])
 
 
 # ---- END EXPRESSION DEFINITION ---------
@@ -872,8 +642,7 @@ def p_exp_l_2(p):
                 | NOT_EQUAL
                 | EQUALITY'''
     p[0] = p[1]
-    code_gen.addOperator_3(p[0])
-
+    semantics.add_operator_comparison(p[1])
 
 # ---- END EXP_L DEFINITION ---------
 
@@ -899,7 +668,7 @@ def p_exp_2(p):
     '''exp_2    : PLUS
                 | MINUS'''
     p[0] = p[1]
-    code_gen.addOperator_1(p[1])
+    semantics.add_operator_addition(p[1])
 
 
 # ---- END EXP DEFINITION ---------
@@ -926,7 +695,7 @@ def p_term_2(p):
     '''term_2   : TIMES
                 | DIVIDE'''
     p[0] = p[1]
-    code_gen.addOperator_2(p[1])
+    semantics.add_operator_multiplication(p[1])
 
 
 # ---- END TERM DEFINITION ---------
@@ -948,13 +717,13 @@ def p_factor(p):
 def p_factorAux(p):
     '''factorAux   : OPEN_PARENTHESIS'''
     p[0] = p[1]
-    code_gen.addOperator(p[1])
+    semantics.add_operator(p[1])
 
 
 def p_factorAux2(p):
     '''factorAux2   : CLOSED_PARENTHESIS'''
     p[0] = p[1]
-    code_gen.factor_solve()
+    semantics.solve_factor()
 
 
 def p_factor_1(p):
@@ -985,35 +754,26 @@ def p_var_cte(p):
 def p_var_cteAuxINT(p):
     '''var_cteAuxINT  : CTE_I'''
     p[0] = p[1]
-    var_cte = cte_table.insert_cte(int(p[1]), 'int')
-    code_gen.types.push("int")
-    code_gen.addOperand(var_cte)
+    semantics.store_constant(int(p[1]), 'int')
 
 
 def p_var_cteAuxFLOAT(p):
     '''var_cteAuxFLOAT  : CTE_F'''
     p[0] = p[1]
-    var_cte = cte_table.insert_cte(float(p[1]), 'float')
-    code_gen.types.push("float")
-    code_gen.addOperand(var_cte)
+    semantics.store_constant(float(p[1]), 'float')
 
 
 def p_var_cteAuxSTRING(p):
     '''var_cteAuxSTRING  : CTE_S'''
     p[0] = p[1]
-    var_cte = cte_table.insert_cte(p[1], 'string')
-    code_gen.types.push("string")
-    code_gen.addOperand(var_cte)
+    semantics.store_constant(p[1], 'string')
 
 
 def p_var_cteAuxBOOL(p):
     '''var_cteAuxBOOL   : TRUE
                         | FALSE '''
     p[0] = p[1]
-    var_cte = cte_table.insert_cte(p[1], 'bool')
-    code_gen.types.push("bool")
-    code_gen.addOperand(var_cte)
-
+    semantics.store_constant(p[1], 'bool')
 
 # ---- END VAR_CTE DEFINITION ---------
 
@@ -1026,21 +786,11 @@ def p_type_atomic(p):
                     | STRING
                     | BOOL'''
     p[0] = p[1]
-    current_table.set_type(p[1])
+    semantics.store_current_type(p[1])
 
 
 # ---- END TYPE_ATOMIC DEFINITION ---------
 
-# ---- BEGIN TYPE DEFINITION ---------
-
-
-# def p_type(p):
-#     '''type : type_atomic
-#             | ID'''
-#     p[0] = p[1]
-
-
-# ---- END TYPE DEFINITION ---------
 
 # ---- BEGIN ID_ARR DEFINITION ---------
 
@@ -1080,23 +830,19 @@ def p_arr_exp_loop(p):
 def p_arr_aux(p):
     '''arr_aux : arr_exp'''
     p[0] = p[1]
-    if current_arr:
-        code_gen.set_dim(current_arr['dims'], cte_table.insert_cte(0, 'int'))
-    else:
-        raise TypeError("Variable is not array")
+    semantics.set_array_dims()
 
 
 def p_arr_exp(p):
     '''arr_exp  : arr_expAux expression CLOSED_SQRT_BRACKET'''
     p[0] = p[1] + p[2] + p[3]
-    code_gen.arr_solve()
-    code_gen.operators.pop()
+    semantics.solve_array_expression()
 
 
 def p_arr_expAux(p):
     '''arr_expAux  : OPEN_SQRT_BRACKET'''
     p[0] = p[1]
-    code_gen.operators.push('ARR')
+    semantics.add_operator('ARR')
 
 
 # ---- END ARR_DIM DEFINITION ---------
@@ -1106,43 +852,14 @@ def p_arr_expAux(p):
 
 def p_id_arr_var(p):
     '''id_arr_var : id_arr_varAuxID arr_exp_loop'''
-    global current_arr, current_arr_id
-    if current_arr and p[1] == current_arr_id:
-        cte_mem = cte_table.insert_cte(current_arr['virtual_address'], 'int')
-        code_gen.final_arr(cte_mem, current_arr['type'], current_arr['dims'])
-        current_arr = None
+    semantics.array_declaration(p[1])
     p[0] = p[1]
 
 
 def p_id_arrID(p):
     '''id_arr_varAuxID  : ID'''
     p[0] = p[1]
-    global current_arr, current_arr_id
-
-    if p[1] not in current_table.table and current_table != var_table and current_table != global_var_table:
-        if p[1] not in var_table.table:
-            if global_var_table.get_is_array(p[1]):
-                current_arr = global_var_table.table[p[1]]
-                current_arr_id = p[1]
-            else:
-                code_gen.types.push(global_var_table.get_type(p[1]))
-                code_gen.addOperand(
-                    global_var_table.table[p[1]]['virtual_address'])
-        else:
-            if var_table.get_is_array(p[1]):
-                current_arr = var_table.table[p[1]]
-                current_arr_id = p[1]
-            else:
-                code_gen.types.push(var_table.get_type(p[1]))
-                code_gen.addOperand(
-                    var_table.table[p[1]]['virtual_address'])
-    else:
-        if current_table.get_is_array(p[1]):
-            current_arr = current_table.table[p[1]]
-            current_arr_id = p[1]
-        else:
-            code_gen.types.push(current_table.get_type(p[1]))
-            code_gen.addOperand(current_table.table[p[1]]['virtual_address'])
+    semantics.validate_array(p[1])
 
 
 def p_empty(p):
@@ -1168,95 +885,6 @@ def print_grammar(p):
         print("grm: " + str(v))
 
 
-def export_quads():
-    quads = ""
-    for quad in code_gen.quadruples:
-        arr = [str(p) if p is not None else '$' for p in quad]
-        quads += arr[0] + " " + arr[1] + " " + arr[2] + " " + arr[3] + "\n"
-    return quads
-
-
-def export_classes_size():
-    size_export = ""
-    for key in class_dir:
-        size_export += key
-        for dim_size in class_dir[key]['size']:
-            size_export += " " + str(class_dir[key]['size'][dim_size])
-        size_export += "\n"
-    for var in program_vars['program']:
-        size_export += var
-        for dim_size in program_vars['program'][var]['size']:
-            size_export += " " + \
-                           str(program_vars['program'][var]['size'][dim_size])
-        size_export += "\n"
-    return size_export
-
-
-def export_class_signature():
-    size_export = ""
-    for key in class_dir:
-        size_export += key
-        for exe in class_dir[key]['execution']:
-            size_export += " " + str(exe)
-        size_export += "\n"
-    return size_export
-
-
-def export_functions_size():
-    size_export = ""
-    for key in class_dir:
-        for fn in class_dir[key]['functions']:
-            rc = " "
-            for dim_size in class_dir[key]['functions'][fn]['size']:
-                rc += str(class_dir[key]['functions'][fn]
-                          ['size'][dim_size]) + " "
-            size_export += key + " " + fn + rc + "\n"
-    return size_export
-
-
-def export_functions_signature():
-    signatures_export = ""
-    for key in class_dir:
-        for fn in class_dir[key]['functions']:
-            rc = " " + class_dir[key]['functions'][fn]['return_type'] + \
-                " " + str(class_dir[key]['functions'][fn]['position']) + " "
-            for param in class_dir[key]['functions'][fn]['params']:
-                rc += str(class_dir[key]['functions'][fn]
-                          ['params'][param]['type']) + " "
-            signatures_export += key + " " + fn + rc + "\n"
-    return signatures_export
-
-
-def export_ret_functions_address():
-    addresses = ""
-    for key in class_dir:
-        for fn in class_dir[key]['functions']:
-            if fn in class_dir[key]['var_table']:
-                addresses += key + " " + fn + " " + \
-                    str(class_dir[key]['var_table']
-                        [fn]['virtual_address']) + "\n"
-    return addresses
-
-
-def export_constants():
-    constants = ""
-    for cte in cte_table.table:
-        constants += str(cte_table.table[cte]
-                         ['virtual_address']) + " " + str(cte) + "\n"
-    return constants
-
-
-def generateObj():
-    dir_path = 'output'
-    if not os.path.isdir(dir_path):
-        os.makedirs(dir_path)
-    output = export_quads() + "\n" + export_functions_signature() + "\n" + export_ret_functions_address() + "\n" + \
-        export_functions_size() + "\n" + export_class_signature() + "\n" + export_classes_size() + "\n" \
-        + export_constants()
-    filewriter = open(dir_path + "/out.obj", 'w')
-    filewriter.write(output)
-
-
 # Validate if a file was passed through the command line arguments.
 if len(sys.argv) > 1:
     with open(sys.argv[1], 'r') as file:
@@ -1265,4 +893,4 @@ if len(sys.argv) > 1:
     # Parse the file content.
     result = parser.parse(file_content)
     if not err:
-        generateObj()
+        semantics.generateObj('./output')
