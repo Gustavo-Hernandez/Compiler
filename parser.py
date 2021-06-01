@@ -6,8 +6,6 @@
 from components.mem_manager import MemoryManager
 import ply.yacc as yacc
 import sys
-import re
-import os
 
 # Get the token map from the lexer.  This is required.
 from lexer import tokens
@@ -17,6 +15,7 @@ from components.code_gen import CodeGenerator
 from components.semantics import Semantics
 
 semantics = Semantics()
+err = False
 
 # Grammars Definition
 # ---- BEGIN PROGRAM DEFINITION --------
@@ -40,6 +39,7 @@ def p_programAux1_1(p):
     '''programAux1_1 : OPEN_BRACKET program_1'''
     semantics.store_global_statements()
 
+
 def p_program_1(p):
     '''program_1    : statementAux program_1
                     | empty'''
@@ -55,7 +55,6 @@ def p_program_3(p):
                     | empty'''
     if not p[1]:
         semantics.set_current_function_directory_as_global()
-        
 
 
 # ---- END PROGRAM DEFINITION --------
@@ -65,6 +64,7 @@ def p_program_3(p):
 def p_interface(p):
     '''interface    :   interfaceAux module_signature CLOSED_BRACKET'''
     semantics.store_interface(p[1])
+
 
 def p_interfaceAux(p):
     '''interfaceAux : INTERFACE ID OPEN_BRACKET'''
@@ -95,7 +95,8 @@ def p_class(p):
     # [2][3] is implemented_id
     # p[1][2] is codegen.counter
     # p[2][1] is exe
-    semantics.store_class(p[1][0], p[1][1], p[2][0], p[2][2], [2][3], p[1][2], p[2][1])
+    semantics.store_class(p[1][0], p[1][1], p[2][0],
+                          p[2][2], p[2][3], p[1][2], p[2][1])
     p[0] = p[1]
 
 
@@ -125,7 +126,7 @@ def p_class_2(p):
                 | empty'''
     # Pushing extension value upwards
     if p[1]:
-        exe = semantics.handle_class_extension()
+        exe = semantics.handle_class_extension(p[1])
     else:
         exe = []
     p[0] = [p[1], exe]
@@ -205,7 +206,6 @@ def p_statementAux(p):
     '''statementAux : assignation
                     | declaration'''
     semantics.solve_statement()
-    
 
 
 # ---- END STATEMENT DEFINITION ---------
@@ -267,7 +267,7 @@ def p_module_ret(p):
 def p_module_retAux(p):
     '''module_retAux  : type_atomic ID params'''
     p[0] = [p[1], p[2]]
-    semantics.process_module_ret_declaration(p[1],p[2])
+    semantics.process_module_ret_declaration(p[1], p[2])
 
 
 def p_module_ret_1(p):
@@ -286,7 +286,7 @@ def p_params(p):
 
 def p_paramsAux(p):
     '''paramsAux : type_atomic ID'''
-    semantics.process_param(p[0],p[1])
+    semantics.process_param(p[1], p[2])
 
 
 def p_params_1(p):
@@ -321,12 +321,14 @@ def p_void_object_call(p):
 
 def p_object_call(p):
     '''object_call : object_callAux object_call_1'''
-    p[0] = semantics.process_object_call(p[1][0],p[1][1])
+    p[0] = semantics.process_object_call(p[1][0], p[1][1])
+
 
 def p_object_callAux(p):
     '''object_callAux : ID POINT ID'''
-    class_name, address = semantics.validate_object_call()
+    class_name, address = semantics.validate_object_call(p[1], p[3])
     p[0] = [class_name, address]
+
 
 def p_object_call_2(p):
     '''object_call_1    : object_callAux2 object_call_3 CLOSED_PARENTHESIS
@@ -759,6 +761,7 @@ def p_var_cteAuxFLOAT(p):
     '''var_cteAuxFLOAT  : CTE_F'''
     p[0] = p[1]
     semantics.store_constant(float(p[1]), 'float')
+
 
 def p_var_cteAuxSTRING(p):
     '''var_cteAuxSTRING  : CTE_S'''
