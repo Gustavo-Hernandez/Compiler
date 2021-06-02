@@ -4,6 +4,7 @@
 # A01364701 Luis Miguel Maawad Hinojosa
 # ------------------------------------------------------------
 
+# Class used for implementing the Singleton Design Pattern.
 class MemoryManagerMeta(type):
     _instances = {}
 
@@ -12,6 +13,8 @@ class MemoryManagerMeta(type):
             instance = super().__call__(*args, **kwargs)
             cls._instances[cls] = instance
         return cls._instances[cls]
+
+# Memory Manager Class Definition.
 
 
 class MemoryManager(metaclass=MemoryManagerMeta):
@@ -94,19 +97,30 @@ class MemoryManager(metaclass=MemoryManagerMeta):
 
         }
 
-        # Class map definition
+        # Dictionary to keep track of the registered classes
+        # and their base addresses.
         self.class_bases = {}
+
+        # Keeps track of the declared objects and their
+        # virtual addresses.
         self.object_counter = {}
+
+        # Class map definition
         self.class_map = {
             'blocked': 30000,
             'public': 40000,
         }
+
+        # Dictionary that keeps track of the registered classes
+        # depending on their visibility.
         self.class_counter = {
             'blocked': 0,
             'public': 0,
         }
         self.class_offset = 100
 
+    # Resets the context for each module declaration.
+    # Allows the reuse of virtual addresses.
     def reset_module_context(self):
         self.counter['temp'] = {
             'int': 0,
@@ -124,6 +138,8 @@ class MemoryManager(metaclass=MemoryManagerMeta):
             'int': 0
         }
 
+    # Resets the context for each class declaration.
+    # Allows the reuse of virtual addresses
     def reset_class_context(self):
         self.counter['class'] = {
             'int': 0,
@@ -141,25 +157,39 @@ class MemoryManager(metaclass=MemoryManagerMeta):
             'int': 0
         }
 
+    # Calculates the offset for each class declaration.
+    # Used for preventing the overwriting of addresses
+    # while extending a class.
     def class_counter_offset(self, i, f, s, b):
         self.counter['class']['int'] += i
         self.counter['class']['float'] += f
         self.counter['class']['string'] += s
         self.counter['class']['bool'] += b
 
+    # Handles the request of a class address
+    # Calculates the new address based on the current
+    # number of declared classes and the visibility of
+    # the new class.
+    # Stores the class and its address as a base to assign
+    # an address to an object.
     def request_class_address(self, id, visibility):
         new_address = self.class_map[visibility] + \
-                      self.class_counter[visibility]
+            self.class_counter[visibility]
         self.class_map[visibility] += self.class_offset
         self.object_counter[id] = new_address
         self.class_bases[id] = new_address
         return new_address
 
+    # Handles the request of a virtual address
+    # to an object.
     def request_object_address(self, classname):
         new_address = self.object_counter[classname]
         self.object_counter[classname] += 1
         return new_address
 
+    # Returns the total number of assigned addresses
+    # of each variable type that are part of the class
+    # scope.
     def get_class_vars(self):
         mem_space = {
             'c_int': self.counter['class']['int'],
@@ -169,6 +199,9 @@ class MemoryManager(metaclass=MemoryManagerMeta):
         }
         return mem_space
 
+    # Returns the total number of assigned addresses
+    # of each variable type that are part of the temporals
+    # scope.
     def get_class_temps(self):
         mem_space = {
             't_int': self.counter['temp']['int'],
@@ -179,6 +212,9 @@ class MemoryManager(metaclass=MemoryManagerMeta):
         }
         return mem_space
 
+    # Returns the total number of assigned addresses
+    # of each variable type that are part of the module
+    # scope.
     def get_module_counter(self):
         mem_space = {
             'l_int': self.counter['local']['int'],
@@ -193,6 +229,9 @@ class MemoryManager(metaclass=MemoryManagerMeta):
         }
         return mem_space
 
+    # Returns the total number of assigned addresses
+    # of each variable type that are part of the global
+    # scope.
     def get_global_counter(self):
         mem_space = {
             'g_int': self.counter['global']['int'],
@@ -220,6 +259,8 @@ class MemoryManager(metaclass=MemoryManagerMeta):
             return self.request_object_address(tp)
         raise MemoryError("Insuficient memory to assign a new address")
 
+    # Request and Address block given a scope, type and size
+    # The return value is an available address as an integer.
     def request_address_block(self, scope, tp, size):
         if size < 1:
             raise ValueError("Address block must be greater than 1.")
@@ -229,8 +270,12 @@ class MemoryManager(metaclass=MemoryManagerMeta):
             return nextAddress
         raise MemoryError("Insuficient memory to assign a new address")
 
+    # Given an array of numbers, an uninitialized memory space is generated.
+    # The memory space is represented as a dictionary where each address is
+    # a key and all the values are equal to None.
+    # The scope for this memory space contains locals, temporals and pointers.
     def request_localmemory(self, memspace):
-        # TODO: Validate mem in range values.
+        # Generate the virtual addresses for each scope and variable type
         l_int_space = list(
             range(self.map['local']['int'][0], self.map['local']['int'][0] + memspace[0]))
         l_float_space = list(
@@ -250,14 +295,20 @@ class MemoryManager(metaclass=MemoryManagerMeta):
         pointer_space = list(
             range(self.map['pointers']['int'][0], self.map['pointers']['int'][0] + memspace[8]))
 
+        # List of virtual addresses
         spaces = l_int_space + l_float_space + l_string_space + l_bool_space + \
-                 t_int_space + t_float_space + t_string_space + t_bool_space + pointer_space
+            t_int_space + t_float_space + t_string_space + t_bool_space + pointer_space
 
+        # List of tuples following the structure: (virtual_address, None)
         addresses = list(map(lambda x: (x, None), spaces))
         return dict(addresses)
 
+    # Given an array of numbers, an uninitialized memory space is generated.
+    # The memory space is represented as a dictionary where each address is
+    # a key and all the values are equal to None.
+    # The scope for this memory space contains globals, temporals and pointers.
     def request_globalmemory(self, memspace):
-        # TODO: Validate mem in range values.
+        # Generate the virtual addresses for each scope and variable type
         g_int_space = list(
             range(self.map['global']['int'][0], self.map['global']['int'][0] + memspace[0]))
         g_float_space = list(
@@ -277,14 +328,21 @@ class MemoryManager(metaclass=MemoryManagerMeta):
         pointer_space = list(
             range(self.map['pointers']['int'][0], self.map['pointers']['int'][0] + memspace[8]))
 
+        # List of virtual addresses
         spaces = g_int_space + g_float_space + g_string_space + g_bool_space + \
-                 t_int_space + t_float_space + t_string_space + t_bool_space + pointer_space
+            t_int_space + t_float_space + t_string_space + t_bool_space + pointer_space
 
+        # List of tuples following the structure: (virtual_address, None)
         addresses = list(map(lambda x: (x, None), spaces))
         return dict(addresses)
 
+    # Given an array of numbers, an uninitialized memory space is generated.
+    # The memory space is represented as a dictionary where each address is
+    # a key and all the values are equal to None.
+    # The scope for this memory space contains class variables, temporals
+    # and pointers.
     def request_classmemory(self, memspace):
-        # TODO: Validate mem in range values.
+        # Generate the virtual addresses for each scope and variable type
         c_int_space = list(
             range(self.map['class']['int'][0], self.map['class']['int'][0] + memspace[0]))
         c_float_space = list(
@@ -304,8 +362,10 @@ class MemoryManager(metaclass=MemoryManagerMeta):
         pointer_space = list(
             range(self.map['pointers']['int'][0], self.map['pointers']['int'][0] + memspace[8]))
 
+        # List of virtual addresses
         spaces = c_int_space + c_float_space + c_string_space + c_bool_space + \
-                 t_int_space + t_float_space + t_string_space + t_bool_space + pointer_space
+            t_int_space + t_float_space + t_string_space + t_bool_space + pointer_space
 
+        # List of tuples following the structure: (virtual_address, None)
         addresses = list(map(lambda x: (x, None), spaces))
         return dict(addresses)

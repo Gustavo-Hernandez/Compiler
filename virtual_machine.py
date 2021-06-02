@@ -38,9 +38,11 @@ def get_value(address):
     elif address in global_memory:
         value = global_memory[address]
     else:
-        raise RuntimeError("Invalid Address: " + str(address)+ " at quad ", quad_pointer)
+        raise RuntimeError("Invalid Address: " +
+                           str(address) + " at quad ", quad_pointer)
     if value == None:
-        print("[ERROR] Uninitialized value at " + str(address) + " at quad ", quad_pointer)
+        print("[ERROR] Uninitialized value at " +
+              str(address) + " at quad ", quad_pointer)
         sys.exit()
     return value
 
@@ -57,7 +59,8 @@ def get_compound(obj, address):
     else:
         raise RuntimeError("Invalid Address: " + str(address))
     if value is None:
-        print("[ERROR] Uninitialized value at " + str(address) + " at quad ", quad_pointer)
+        print("[ERROR] Uninitialized value at " +
+              str(address) + " at quad ", quad_pointer)
         sys.exit()
     return value
 
@@ -73,7 +76,8 @@ def store_value(value, address):
     elif address in global_memory:
         global_memory[address] = value
     else:
-        raise RuntimeError("Invalid Address: " + str(address) + " at quad ", quad_pointer)
+        raise RuntimeError("Invalid Address: " +
+                           str(address) + " at quad ", quad_pointer)
 
 
 # Function appends object memory to current memory
@@ -88,7 +92,8 @@ def store_param(value, address):
     if address in idle_memory:
         idle_memory[address] = value
     else:
-        raise RuntimeError("Invalid Address: " + str(address) + " at quad ", quad_pointer)
+        raise RuntimeError("Invalid Address: " +
+                           str(address) + " at quad ", quad_pointer)
 
 
 # Function takes a compound address like '40000.2020' and separates it to send to get_compound
@@ -109,7 +114,8 @@ def process_quad(param_quad):
 
     for i in range(1, 4):
         if type(quad[i]) == str and "(" in quad[i]:
-            quad[i] = process_object_attribute(int(quad[i].replace("(", "").replace(")", "")))
+            quad[i] = process_object_attribute(
+                int(quad[i].replace("(", "").replace(")", "")))
 
     if quad[0] == "goto":
         quad_pointer = quad[3] - 1
@@ -193,7 +199,8 @@ def process_quad(param_quad):
             quad_pointer = quad[3] - 1
     elif quad[0] == "ERA":
         func = class_type.top() + '.' + quad[1]
-        idle_memory = MemoryManager().request_localmemory(function_memories[func])
+        idle_memory = MemoryManager().request_localmemory(
+            function_memories[func])
         if funcs[func]['type'] != 'void':
             call_stack.push(quad[1])
         quad_pointer += 1
@@ -230,7 +237,6 @@ def process_quad(param_quad):
     elif quad[0] == "READ":
         address = quad[3]
         value = input()
-
         try:
             if quad[1] == 'string':
                 value = str(value)
@@ -252,7 +258,8 @@ def process_quad(param_quad):
     elif quad[0] == "OBJ":
         class_name = quad[1]
         address = quad[3]
-        memory = MemoryManager().request_classmemory(class_memories[class_name])
+        memory = MemoryManager().request_classmemory(
+            class_memories[class_name])
         memory_stack.push(memory)
         class_address.push(address)
         class_type.push(class_name)
@@ -311,7 +318,8 @@ def main():
 
     const_table = constants
 
-    global_memory = MemoryManager().request_globalmemory(class_memories['program'])
+    global_memory = MemoryManager().request_globalmemory(
+        class_memories['program'])
 
     main_memory = MemoryManager().request_localmemory(class_memories['main'])
     memory_stack.push(main_memory)
