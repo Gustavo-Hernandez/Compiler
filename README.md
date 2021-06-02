@@ -33,8 +33,8 @@ To run a compiled program:
 
     python virtual_machine.py <path/out.obj> 
 ## Programming in LepLang
-A quick reference guide for LepLang can be found inside this repository at *docs/UserManual*
-A series of code examples can be found at *testcases*
+- A quick reference guide for LepLang can be found inside this repository at *docs/UserManual*
+- A series of code examples can be found at *testcases*
 
 ## Authors
 
