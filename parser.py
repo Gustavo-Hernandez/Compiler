@@ -816,6 +816,7 @@ def p_id_arr_1(p):
 
 def p_arr_dim(p):
     '''arr_dim  : OPEN_SQRT_BRACKET CTE_I CLOSED_SQRT_BRACKET'''
+    semantics.validate_dimension(int(p[2]))
     p[0] = p[1] + p[2] + p[3]
 
 

@@ -527,6 +527,12 @@ class Semantics:
                 cte_mem, self.current_arr['type'], self.current_arr['dims'])
             self.current_arr = None
 
+    # Function validates that declared dimension is not 0 or negative
+    # Function receives dimension value
+    def validate_dimension(self, dim):
+        if dim <= 1:
+            raise TypeError("Array dimensions must be equal or higher han 1")
+
     # Function used to format quadruples for export file
     def export_quads(self):
         quads = ""
