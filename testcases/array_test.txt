@@ -1,5 +1,5 @@
 program ArrayTest {
-    int a[-2][2];
+    int a[2][2];
 
     main(){
         a[0][0] = 5;

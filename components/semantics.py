@@ -530,7 +530,7 @@ class Semantics:
     # Function validates that declared dimension is not 0 or negative
     # Function receives dimension value
     def validate_dimension(self, dim):
-        if dim <= 1:
+        if dim <= 0:
             raise TypeError("Array dimensions must be equal or higher han 1")
 
     # Function used to format quadruples for export file
