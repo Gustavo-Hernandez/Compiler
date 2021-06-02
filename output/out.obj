@@ -1,0 +1,40 @@
+= 10500 $ 1000
+goto $ $ 14
+= 10500 $ 4000
+ENDCLS $ $ $
+print $ $ 11500
+ENDFUNC $ $ $
+= 10500 $ 4000
+ENDCLS $ $ $
+= 10501 $ 1000
+print $ $ 11500
+ENDFUNC $ $ $
+= 7000 $ 4000
+ENDFUNC $ $ $
+OBJ Human $ 40100
+OBJSUB $ $ $
+OBJ Human $ 40101
+OBJSUB $ $ $
+= 10500 $ 7000
+END $ $ $
+
+Animal sayHello void 5 
+Human sayHello void 9 
+Human setAge void 12 int 
+
+
+Animal sayHello 0 0 0 0 0 0 0 0 0 
+Human sayHello 0 0 0 0 0 0 0 0 0 
+Human setAge 1 0 0 0 0 0 0 0 0 
+
+Animal 3
+Human 7
+
+Animal 1 0 0 0 0 0 0 0 0
+Human 1 0 0 0 0 0 0 0 0
+program 1 0 0 0 0 0 0 0 0
+main 1 0 0 0 0 0 0 0 0
+
+10500 2
+11500 "Hello"
+10501 3
