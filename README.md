@@ -18,7 +18,7 @@ Install PLY:
  ### macOS
 To compile a program:
 
-    python3 parser.py <filename.txt>
+    python3 parser.py <path/filename.txt>
 
 To run a compiled program:
 
