@@ -28,6 +28,7 @@ class CodeGenerator:
         self.types = Stack()
         self.jumps = Stack()
         self.quadruples = []
+        self.current_scope = 'global'
         self.main_quad = 0
         self.par_counter = 0
         self.t_counter = 0
