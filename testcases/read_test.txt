@@ -1,3 +1,0 @@
-private class classname : parentClass {
-    string a = "Perro Gato Chango";
-}

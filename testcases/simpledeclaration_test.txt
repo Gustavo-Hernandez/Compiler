@@ -1,8 +1,0 @@
-private class classname : parentClass {
-    
-    main(){
-        float a,b,c,x;
-        x = a * a + b + 2;
-        c = a + 5;
-    }
-}

@@ -1,0 +1,60 @@
+program BasicTests{
+    
+    /* Class for handling arrays and matrices */
+    blocked class Matrix{
+        int z = 0 + 2 + 2;
+
+        func void matMul(){
+            int arrA[3][3], arrB[3][3];
+            int lenA = 3;
+            int lenB = 3;
+            int lenC = 3;
+            int lenD = 3;
+
+            int i, j;
+            i = 0;
+            j = 0;
+
+            loop(i < lenA){
+                loop(j < lenB){
+                    arrA[i][j] = (i * lenB) + (j + 1);
+                    arrB[i][j] = (i * lenB) + (j + 1);
+                    j = 1 + j;
+                }
+                j = 0;
+                i = i + 1;
+            }
+
+            i = 0;
+
+            int arrC[4][5];
+
+            loop(i < lenA){
+                loop(j < lenB){
+                    arrC[i][j] = arrA[i][j] * arrB[i][j];
+                    j = 1 + j;
+                }
+                j = 0;
+                i = i + 1;
+            }
+
+            i = 0;
+
+            loop(i < lenA){
+                loop(j < lenB){
+                    print(arrC[i][j] + "");
+                    j = 1 + j;
+                }
+                j = 0;
+                i = i + 1;
+            }
+        }
+
+    }
+
+    main(){
+        Matrix mat;
+        mat.matMul();
+    }
+}
+

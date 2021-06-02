@@ -1,9 +1,0 @@
-private class classname : parentClass {
-    int a = 2;
-    a = 2;
-    a = {2,2,2,2};
-    a = {{2,2,2,2},{2,2,2,2}};
-
-    main(){
-    }
-}

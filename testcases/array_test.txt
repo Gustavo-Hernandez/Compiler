@@ -1,0 +1,9 @@
+program ArrayTest {
+    int a[2][2];
+
+    main(){
+        a[0][0] = 5;
+        a[0][1] = 4;
+        print("The result is: " + (a[0][0] + a[0][1] * 2));
+    }
+}

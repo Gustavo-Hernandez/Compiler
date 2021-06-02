@@ -1,7 +1,0 @@
-private class classname : parentClass {
-    double a,b,c;
-    int x = 2;
-    int[2][2] y = {{2},{2}};
-    x = 4;
-    a = 7;
-}

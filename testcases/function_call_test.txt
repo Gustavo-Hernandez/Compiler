@@ -1,22 +1,12 @@
-private class classname : parentClass {
-    int a, b;
-    a = 4 + 2;
-    func void module1(int j, bool k){
-       int a,b,c;
-       a = j+1;
+program FunctionCallTest{
+    public class Robot {
+        func void sayHello(){
+            print("Hello There!");
+        }
     }
-
-    func int module2(){
-        int z[4][5][2], j, p, y[1];
-        z[1][1][1] = 2 + 3 + j + y[0];
-        return 4 + 7 + z[0+1+2][1][1] + z[2][2][2] + j;
-    }
-
+    
     main(){
-        int z[4][5][2];
-        module1(4 + 5, true);
-        int b = 4 + 5;
-        int c = module2() + 2;
-        a = z[0][1][2] + 3;
+        Robot bot;
+        bot.sayHello();
     }
 }

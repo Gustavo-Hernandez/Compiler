@@ -1,0 +1,27 @@
+program ControlFlowTest{
+
+    main(){
+        int difference = 0;
+        int a = 4;
+        int b;
+        print("Enter a value: ");
+        read(b);
+        
+        if(a > b){
+            print("a is greater than b");
+            loop(b < a or a != b){
+                difference = difference + 1;
+                b = b + 1;
+            }
+            print("Difference between b and a is " + difference);
+        }
+        else{
+            print("a is less or equal than b");
+            loop(a < b or a != b){
+                difference = difference + 1;
+                a = a + 1;
+            }
+            print("Difference between a and b is " + difference);
+        }
+    }
+}

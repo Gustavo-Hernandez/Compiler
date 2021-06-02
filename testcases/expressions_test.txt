@@ -1,0 +1,8 @@
+program ExpressionsTests{
+
+    main(){
+        int a = 4;
+        print("Evaluating ( a * 4 + 5 * 180 / 5 * 5 - (46 + 5 / 2) - 51) ...");
+        print("The result is: " + ( a * 4 + 5 * 180 / 5 * 5 - (46 + 5 / 2) - 51) );
+    }
+}

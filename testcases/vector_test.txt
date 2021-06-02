@@ -1,0 +1,82 @@
+program VectorTest{
+    public class VectorOperations{
+        func void sort(){
+            int arr[10];
+            arr[0] = 2;
+            arr[1] = 5;
+            arr[2] = 7;
+            arr[3] = 4;
+            arr[4] = 3;
+            arr[5] = 1;
+            arr[6] = 9;
+            arr[7] = 10;
+            arr[8] = 8;
+            arr[9] = 6;
+
+            int i = 0;
+
+            loop(i < 10){
+                int j = i + 1;
+                int min = arr[i];
+
+                loop(j < 10){
+                    if(min > arr[j]){
+                        int temp;
+
+                        temp = arr[i];
+
+                        arr[i] = arr[j];
+
+                        arr[j] = temp;
+
+                        min = arr[i];
+                    }
+                    j = j + 1;
+                }
+
+                i = i + 1;
+            }
+
+            i = 0;
+
+            loop(i < 10){
+                print(arr[i]+"");
+                i = i + 1;
+            }
+        }
+
+        func int find(int a){
+            int arr[10];
+            arr[0] = 2;
+            arr[1] = 5;
+            arr[2] = 7;
+            arr[3] = 4;
+            arr[4] = 3;
+            arr[5] = 1;
+            arr[6] = 9;
+            arr[7] = 10;
+            arr[8] = 8;
+            arr[9] = 6;
+
+            int i = 0;
+            int ind = 0 - 1;
+
+            bool notFound = true;
+
+            loop(i < 10 and notFound){
+                if(arr[i] == a){
+                    notFound = false;
+                    ind = i;
+                }
+                i = i + 1;
+            }
+
+            return ind;
+        }
+    }
+    main(){
+        VectorOperations vector;
+        vector.sort();
+        print("Found '1' at index " + vector.find(1));
+    }
+}
